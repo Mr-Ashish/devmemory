@@ -14,6 +14,7 @@
 | ROI pass | Quality fixes | **done** — see below |
 | R3 | Claude Code SessionEnd hook + install one-liner | **done** — scripts/claude-code-hook.sh + install-claude-hook.sh |
 | R4 | Unified knowledge git-style preview diff | **done** — plan_preview + preview.diff on every extract |
+| R5 | devmemory doctor (hermes/key/sessions/model) | **done** — doctor.py + CLI --json/--strict |
 | 6 | Watch + CI validation | later (after R1–R5) |
 | 7 | Multi-source + skill evolution | later |
 

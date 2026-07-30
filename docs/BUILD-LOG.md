@@ -94,3 +94,11 @@ change code
 - Tests: `tests/test_preview_diff.py` (7) → 51 total
 - Showcase packs `preview.diff` / `preview.json`; live Opus `dogfood-run-20260731T025840-bf64f4` hermes_rc=0 units=4 · eval 4.8/5
 - **Backlog:** R4 done → next **R5** (devmemory doctor)
+
+## 2026-07-31 · R5 devmemory doctor
+
+- `doctor.py` + `devmemory doctor`: hermes, OPENROUTER key (masked), sessions, model, git, gitignore, hook, state
+- Flags: `--json`, `--strict` (exit 1 unless ready_live); machine JSON line always
+- Never prints raw keys — fingerprint only
+- Tests: `tests/test_doctor.py` (7) → 58 total
+- **Backlog:** R5 done → R1–R5 proven; next optional R6 anti-restate

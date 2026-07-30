@@ -11,6 +11,7 @@
 
 ## Common commands
 
+- Readiness: `devmemory doctor` (table + JSON); `devmemory doctor --strict` fails unless live-ready; `devmemory doctor --json` for CI
 - Dry-run extract (units + proposed paths + unified `preview.diff`): `devmemory extract --fixture sample-auth-module`
 - Review knowledge diff: open `.devmemory/out/<run>/preview.diff` or read the colorized CLI print
 - Write knowledge: `devmemory extract --fixture sample-auth-module --apply`
@@ -42,4 +43,5 @@ Install once per project (or use `--user` for all repos):
 - After a dogfood run: `devmemory review` then `git diff` as the human gate.
 - Hook silent? Check `.devmemory/hooks.log`; ensure `devmemory` is on PATH or `.venv/bin/devmemory` exists; set `DEVMEMORY_HOOK_VERBOSE=1` for stderr.
 - Hook skipped on Stop: expected unless `DEVMEMORY_HOOK_ON_STOP=1`.
-- Full local loop: `source .venv/bin/activate`, `./scripts/ensure-hermes.sh`, `./scripts/smoke-e2e.sh`, `devmemory extract --fixture dogfood-build-narrative --apply --force --showcase`, `pytest -q`.
+- Live extract fails? Run `devmemory doctor --strict` — fix hermes (`./scripts/ensure-hermes.sh`) or `OPENROUTER_API_KEY` / `DEVMEMORY_ENV_FILE`.
+- Full local loop: `source .venv/bin/activate`, `./scripts/ensure-hermes.sh`, `devmemory doctor --strict`, `./scripts/smoke-e2e.sh`, `devmemory extract --fixture dogfood-build-narrative --apply --force --showcase`, `pytest -q`.

@@ -85,8 +85,15 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 **Result:** 7 preview tests green (51 total); dry-run preview matches post-apply content.  
 **Keep.**
 
+## 2026-07-31 · R5 devmemory doctor
+
+**Hypothesis:** After Claude sessions, the first failure mode is "why won't extract run?" — hermes missing, key unset, no sessions — not model quality.  
+**Method:** single `devmemory doctor` with ok/warn/fail/info checks, masked key fingerprint, ready_live/ready_offline, `--strict` for scripts.  
+**Result:** 7 doctor tests green (58 total); live machine reports ready_live=yes with fixtures-only sessions warn.  
+**Keep.**
+
 ## ROI ideas (persona jobs: session→discover→extract→apply→reuse)
 
-1. **R5 doctor** — one command for hermes/OpenRouter/sessions/model readiness (highest next ROI).
-2. **R6 anti-restate** — compact knowledge index so re-runs add nothing when stable.
-3. **Hook apply gate** — only suggest extract when session had tool edits (lower thrash than Stop).
+1. **R6 anti-restate** — compact knowledge index so re-runs add nothing when stable (highest next after R1–R5).
+2. **R7 CI form-validator** — DEV.md/USAGE.md shape without transcripts.
+3. **Hook apply gate** — only suggest extract when session had tool edits.

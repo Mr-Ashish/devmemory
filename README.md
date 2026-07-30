@@ -175,6 +175,10 @@ export OPENROUTER_API_KEY=...          # or:
 # Hermes CLI (once)
 ./scripts/ensure-hermes.sh
 
+# Readiness (hermes, key, sessions, model) — never prints secrets
+devmemory doctor
+devmemory doctor --strict   # exit 1 unless live-ready
+
 # Offline (no API) — deterministic
 devmemory extract --fixture sample-auth-module --offline --apply --force
 
@@ -201,6 +205,7 @@ open assets/devmemory-core.html   # or: python -m http.server 8765
 | Command | Purpose |
 |---------|---------|
 | `devmemory init` | `.devmemory/`, seed templates, gitignore |
+| `devmemory doctor` | hermes · OpenRouter key · sessions · model readiness |
 | `devmemory list-sessions` | fixtures + Claude history for this repo |
 | `devmemory extract` | full pipeline |
 | `devmemory apply --run <id>` | re-apply prior `units.json` |

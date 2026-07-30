@@ -205,6 +205,89 @@ def status_cmd(repo: str | None) -> None:
         )
 
 
+@main.command("doctor")
+@click.option("--repo", default=None, help="Target repository root")
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    help="Machine-readable JSON on stdout (no secrets)",
+)
+@click.option(
+    "--strict",
+    is_flag=True,
+    help="Exit 1 unless ready for live Hermes extract (hermes + OpenRouter key)",
+)
+def doctor_cmd(repo: str | None, as_json: bool, strict: bool) -> None:
+    """Check hermes, OpenRouter key, sessions, model, and related readiness.
+
+    Never prints API keys — only presence + fingerprint.
+    Exit 0 when offline extract is possible; --strict requires live readiness.
+    """
+    from devmemory.doctor import run_doctor
+
+    root = _repo_path(repo)
+    report = run_doctor(root)
+    if as_json:
+        print(json.dumps(report.to_dict(), indent=2))
+    else:
+        status_style = {
+            "ok": "green",
+            "warn": "yellow",
+            "fail": "red",
+            "info": "cyan",
+        }
+        console.print(f"[bold]devmemory doctor[/bold] v{report.version}")
+        console.print(f"  repo: {report.repo}")
+        table = Table(title="Readiness")
+        table.add_column("check")
+        table.add_column("status")
+        table.add_column("summary")
+        table.add_column("fix / detail")
+        for c in report.checks:
+            style = status_style.get(c.status, "white")
+            fix_or_detail = c.fix if c.status in ("fail", "warn") and c.fix else c.detail
+            table.add_row(
+                c.id,
+                f"[{style}]{c.status}[/{style}]",
+                c.summary,
+                fix_or_detail[:80],
+            )
+        console.print(table)
+        live = "yes" if report.ready_live else "no"
+        offline = "yes" if report.ready_offline else "no"
+        live_color = "green" if report.ready_live else "yellow"
+        console.print(
+            f"  ready_offline=[{('green' if report.ready_offline else 'red')}]{offline}[/]  "
+            f"ready_live=[{live_color}]{live}[/]"
+        )
+        if not report.ready_live:
+            console.print(
+                "[dim]live extract needs hermes + OPENROUTER_API_KEY; "
+                "offline works with fixtures via --offline[/dim]"
+            )
+        # machine line for scripts (always last on stdout)
+        print(
+            json.dumps(
+                {
+                    "ok": report.ok,
+                    "ready_live": report.ready_live,
+                    "ready_offline": report.ready_offline,
+                    "repo": report.repo,
+                    "version": report.version,
+                    "fail": [c.id for c in report.checks if c.status == "fail"],
+                    "warn": [c.id for c in report.checks if c.status == "warn"],
+                }
+            )
+        )
+
+    if strict:
+        if not report.ready_live:
+            raise SystemExit(1)
+    elif not report.ok:
+        raise SystemExit(1)
+
+
 @main.command("extract")
 @click.option("--repo", default=None, help="Target repository")
 @click.option("--session", "session_id", default=None, help="Session id")
