@@ -1,0 +1,46 @@
+diff --git a/src/devmemory/DEV.md b/src/devmemory/DEV.md
+--- a/src/devmemory/DEV.md
++++ b/src/devmemory/DEV.md
+@@ -9,6 +9,9 @@
+ - Runtime state is written under `.devmemory/` (gitignored); curated, redacted public traces are written under `docs/showcase/`.
+ - Control plane mirrors the Luffy PR-review agent shape: assemble → `hermes -z` → normalize → apply → human git review.
+ - `extract_session` records per-stage timings (assemble/extract/normalize/apply/total) into `timings.json` in the run dir and surfaces them on `ExtractOutcome`.
++
++- `validate.py` is the form checker for colocated DEV.md/USAGE.md: H1 present, no `_(none yet)_` placeholders, no empty H2 sections, no glued mid-line `##` headings, knowledge not under blocked trees (`tests/`, `docs/`, `fixtures/`, `assets/`, `scripts/`), and a secret-pattern scan; non-canonical H2 titles are warnings, not failures.
++- `scripts/validate-knowledge.sh` wraps `devmemory validate --strict`; `.github/workflows/ci.yml` runs pytest plus a soft (non-`--strict`) `devmemory validate`, so warnings do not break CI while hard form errors do.
+ 
+ ## Design decisions
+ 
+@@ -30,6 +33,9 @@
+ - `DEV_TEMPLATE` / `USAGE_TEMPLATE` in `apply.py` contain only the H1 and the blockquote — canonical H2 sections are created on first real content instead of being pre-scaffolded empty.
+ - `sections.strip_placeholders` ends by calling `scrub_empty_h2_sections`, so placeholder removal and hollow-heading removal are a single pass on every apply.
+ - `scrub_empty_h2_sections` drops an `## ` heading plus its trailing blanks when every body line up to the next H2 is whitespace, keeps H1/blockquotes untouched, and collapses runs of blank lines to at most two.
++
++- Form validation is deliberately a separate, dependency-free stage from extraction: `validate.py` is pure Python with no Hermes subprocess, no OpenRouter call and no session/transcript access, so CI can gate knowledge shape on any runner without an API key.
++- `--strict` (fail on warnings) is reserved for the local/script path; CI stays soft so canonical-H2 drift reports without blocking merges.
+ 
+ ## Patterns
+ 
+@@ -57,6 +63,8 @@
+ - `paths.is_knowledge_blocked` filters both the `EXISTING_DIRS` list and the collected knowledge files, so blocked trees (tests/docs-style dirs) can never be offered to the model as a knowledge home.
+ - The directory list handed to the prompt is `list_repo_dirs` filtered by block rules and truncated to the first 80 entries.
+ 
++- The glued-heading check must ignore inline code mentions: a backticked `## Architecture` inside prose is documentation, not a mid-line heading, and flagging it produces false failures on the project's own DEV.md files.
++
+ ## Design decisions
+ 
+ - Bullet dedupe in `apply.py` is paraphrase-aware, not just exact: `_near_duplicate` accepts a match on substring containment (both bullets >24 chars), Jaccard ≥ 0.52, or coverage of the smaller token set ≥ 0.62.
+
+diff --git a/src/devmemory/USAGE.md b/src/devmemory/USAGE.md
+--- a/src/devmemory/USAGE.md
++++ b/src/devmemory/USAGE.md
+@@ -10,6 +10,10 @@
+ - End-to-end smoke: `./scripts/smoke-e2e.sh`; Hermes-only connectivity check: `./scripts/smoke-hermes.sh`.
+ - `devmemory review` shows the pending doc changes for human git review.
+ - The last line of `devmemory extract` stdout is machine-readable JSON including `units`, `changes`, `model`, `hermes_rc`, `timings` and `showcase`.
++
++- Check knowledge-file form (no transcripts, no LLM, no key needed): `devmemory validate`.
++- Machine-readable output for CI: `devmemory validate --json`; exit code 1 on failure.
++- Local gate that also fails on warnings: `./scripts/validate-knowledge.sh` (runs `devmemory validate --strict`).
+ 
+ ## Debugging

@@ -1,0 +1,23 @@
+{
+  "session_id": "20260731_020504_9bd102",
+  "messages": [
+    {
+      "id": 1,
+      "session_id": "20260731_020504_9bd102",
+      "role": "user",
+      "content": "Reply with exactly the single word: pong",
+      "timestamp": 1785443704.837742,
+      "tool_name": null,
+      "tool_calls": null
+    },
+    {
+      "id": 2,
+      "session_id": "20260731_020504_9bd102",
+      "role": "assistant",
+      "content": "pong",
+      "timestamp": 1785443707.211414,
+      "tool_name": null,
+      "tool_calls": null
+    }
+  ]
+}

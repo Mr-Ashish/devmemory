@@ -1,0 +1,12 @@
+diff --git a/src/devmemory/DEV.md b/src/devmemory/DEV.md
+--- a/src/devmemory/DEV.md
++++ b/src/devmemory/DEV.md
+@@ -42,6 +42,8 @@
+ - An offline heuristic extract (path inference + command-line regex) keeps CI green without an OpenRouter key; it also acts as a fallback when a live run returns no parseable units.
+ - Dogfood loop: improve the product → run extract on this repo → update DEV/USAGE → capture a showcase package → push.
+ 
++- The unit suite is expected to cover the merge-quality surfaces specifically — redaction, normalize, apply dedupe, path snapping and offline extract — with roughly 19+ tests as the floor.
++
+ ## Pitfalls
+ - Redacting secrets before parsing breaks JSON — run redaction on string fields *after* the JSON parse in `normalize.py`.
+ - Without bullet near-dupe skipping, re-running extract thrashes DEV.md/USAGE.md with restated content.

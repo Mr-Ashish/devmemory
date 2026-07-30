@@ -1,0 +1,22 @@
+{
+  "stats": {
+    "files": 2,
+    "lines_added": 12,
+    "lines_removed": 0,
+    "changes": 4
+  },
+  "files": [
+    {
+      "path": "src/devmemory/DEV.md",
+      "is_new": false,
+      "lines_added": 8,
+      "lines_removed": 0
+    },
+    {
+      "path": "src/devmemory/USAGE.md",
+      "is_new": false,
+      "lines_added": 4,
+      "lines_removed": 0
+    }
+  ]
+}

@@ -114,3 +114,13 @@ change code
 - Tests: 3 apply + 2 fallback → **63 total**
 - Live Opus showcase `dogfood-run-20260731T031810-c66390` hermes_rc=0 units=2 (+4/-0) · eval **5.0/5**
 - **Backlog:** R6 done → next **R7** CI form-validator
+
+## 2026-07-31 · R7 CI form-validator
+
+- `validate.py` + `devmemory validate`: H1, placeholders, empty H2, glued section H2 (ignore inline `` `##` ``), blocked path, secrets, unknown-section warn
+- Flags: `--json`, `--strict` (warns fail); machine JSON summary line
+- `scripts/validate-knowledge.sh` → validate --strict; `.github/workflows/ci.yml` pytest + soft validate
+- Fixed historical mid-line `.## Section` thrash in knowledge files
+- Tests: `tests/test_validate.py` (12) → **75 total**
+- Live Opus showcase `dogfood-run-20260731T032614-a2aa70` hermes_rc=0 units=4 · eval **5.0/5**
+- **Backlog:** R7 done → next **hook apply gate** (tool-edit only) or R8 watch

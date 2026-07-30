@@ -10,6 +10,9 @@
 - Control plane mirrors the Luffy PR-review agent shape: assemble → `hermes -z` → normalize → apply → human git review.
 - `extract_session` records per-stage timings (assemble/extract/normalize/apply/total) into `timings.json` in the run dir and surfaces them on `ExtractOutcome`.
 
+- `validate.py` is the form checker for colocated DEV.md/USAGE.md: H1 present, no `_(none yet)_` placeholders, no empty H2 sections, no glued mid-line `##` headings, knowledge not under blocked trees (`tests/`, `docs/`, `fixtures/`, `assets/`, `scripts/`), and a secret-pattern scan; non-canonical H2 titles are warnings, not failures.
+- `scripts/validate-knowledge.sh` wraps `devmemory validate --strict`; `.github/workflows/ci.yml` runs pytest plus a soft (non-`--strict`) `devmemory validate`, so warnings do not break CI while hard form errors do.
+
 ## Design decisions
 
 - Extraction pipeline stages: assemble → hermes extract → normalize → apply.
@@ -31,6 +34,9 @@
 - `sections.strip_placeholders` ends by calling `scrub_empty_h2_sections`, so placeholder removal and hollow-heading removal are a single pass on every apply.
 - `scrub_empty_h2_sections` drops an `## ` heading plus its trailing blanks when every body line up to the next H2 is whitespace, keeps H1/blockquotes untouched, and collapses runs of blank lines to at most two.
 
+- Form validation is deliberately a separate, dependency-free stage from extraction: `validate.py` is pure Python with no Hermes subprocess, no OpenRouter call and no session/transcript access, so CI can gate knowledge shape on any runner without an API key.
+- `--strict` (fail on warnings) is reserved for the local/script path; CI stays soft so canonical-H2 drift reports without blocking merges.
+
 ## Patterns
 
 - DEV.md captures architecture, design decisions, patterns, pitfalls, and module-specific engineering context.
@@ -41,6 +47,8 @@
 - A session is only marked processed when `units > 0`, so empty or failed runs never poison the cursor.
 - An offline heuristic extract (path inference + command-line regex) keeps CI green without an OpenRouter key; it also acts as a fallback when a live run returns no parseable units.
 - Dogfood loop: improve the product → run extract on this repo → update DEV/USAGE → capture a showcase package → push.
+
+- The unit suite is expected to cover the merge-quality surfaces specifically — redaction, normalize, apply dedupe, path snapping and offline extract — with roughly 19+ tests as the floor.
 
 ## Pitfalls
 - Redacting secrets before parsing breaks JSON — run redaction on string fields *after* the JSON parse in `normalize.py`.
@@ -54,6 +62,8 @@
 - `assemble.collect_repo_context` compacts existing DEV.md/USAGE.md before they reach the model: `_compact_knowledge` keeps each `## ` title plus at most 5 bullets, sections with no bullets are dropped entirely, and the result is capped at `DEVMEMORY_MAX_KNOWLEDGE_CHARS` (default 1600) with a `… [truncated; do not restate] …` marker — this is an anti-restate/token-thrift measure, not just truncation.
 - `paths.is_knowledge_blocked` filters both the `EXISTING_DIRS` list and the collected knowledge files, so blocked trees (tests/docs-style dirs) can never be offered to the model as a knowledge home.
 - The directory list handed to the prompt is `list_repo_dirs` filtered by block rules and truncated to the first 80 entries.
+
+- The glued-heading check must ignore inline code mentions: a backticked `## Architecture` inside prose is documentation, not a mid-line heading, and flagging it produces false failures on the project's own DEV.md files.
 
 ## Design decisions
 

@@ -11,6 +11,10 @@
 - `devmemory review` shows the pending doc changes for human git review.
 - The last line of `devmemory extract` stdout is machine-readable JSON including `units`, `changes`, `model`, `hermes_rc`, `timings` and `showcase`.
 
+- Check knowledge-file form (no transcripts, no LLM, no key needed): `devmemory validate`.
+- Machine-readable output for CI: `devmemory validate --json`; exit code 1 on failure.
+- Local gate that also fails on warnings: `./scripts/validate-knowledge.sh` (runs `devmemory validate --strict`).
+
 ## Debugging
 
 - `hermes_rc != 0`: inspect `extract.raw.stderr` in the run dir, and confirm the seeded `HERMES_HOME/.env` is mode 0600 and contains `OPENROUTER_API_KEY`.

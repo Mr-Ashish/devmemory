@@ -1,0 +1,57 @@
+{
+  "units": [
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Architecture",
+      "content": "- `validate.py` is the form checker for colocated DEV.md/USAGE.md: H1 present, no `_(none yet)_` placeholders, no empty H2 sections, no glued mid-line `##` headings, knowledge not under blocked trees (`tests/`, `docs/`, `fixtures/`, `assets/`, `scripts/`), and a secret-pattern scan; non-canonical H2 titles are warnings, not failures.\n- `scripts/validate-knowledge.sh` wraps `devmemory validate --strict`; `.github/workflows/ci.yml` runs pytest plus a soft (non-`--strict`) `devmemory validate`, so warnings do not break CI while hard form errors do.",
+      "evidence": [
+        "Checks: H1 present, no _(none yet)_ placeholders, no empty H2 sections, no glued mid-line ## section headings",
+        "GitHub Actions `.github/workflows/ci.yml` runs pytest + `devmemory validate` (soft; not --strict)"
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Design decisions",
+      "content": "- Form validation is deliberately a separate, dependency-free stage from extraction: `validate.py` is pure Python with no Hermes subprocess, no OpenRouter call and no session/transcript access, so CI can gate knowledge shape on any runner without an API key.\n- `--strict` (fail on warnings) is reserved for the local/script path; CI stays soft so canonical-H2 drift reports without blocking merges.",
+      "evidence": [
+        "Design decision: form validation is local pure-Python — no Hermes, no OpenRouter, no session access.",
+        "`--strict` (fails on warns)"
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Pitfalls",
+      "content": "- The glued-heading check must ignore inline code mentions: a backticked `## Architecture` inside prose is documentation, not a mid-line heading, and flagging it produces false failures on the project's own DEV.md files.",
+      "evidence": [
+        "Pitfall: do not treat inline backtick mentions of `## Section` as glued headings."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "usage",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Common commands",
+      "content": "- Check knowledge-file form (no transcripts, no LLM, no key needed): `devmemory validate`.\n- Machine-readable output for CI: `devmemory validate --json`; exit code 1 on failure.\n- Local gate that also fails on warnings: `./scripts/validate-knowledge.sh` (runs `devmemory validate --strict`).",
+      "evidence": [
+        "CLI: `devmemory validate`, `--json`, `--strict`",
+        "Command: `devmemory validate --json` for CI machine output; exit 1 on fail."
+      ],
+      "confidence": "high"
+    }
+  ],
+  "summary": "The session adds a new module, src/devmemory/validate.py, plus a CI wiring path: a transcript-free, LLM-free form validator for colocated DEV.md/USAGE.md with a concrete check list, CLI flags (--json/--strict), a wrapper script and a GitHub Actions step. New durable knowledge: the validator's architecture and checks, the local pure-Python design constraint, the inline-backtick-heading false positive pitfall, and the commands.",
+  "session_ids": [
+    "r7-validate-ship"
+  ],
+  "model": "anthropic/claude-opus-5",
+  "raw_path": "/Users/ashishmishra/Documents/experimentation/devmemory/.devmemory/out/run-20260731T032614-a2aa70/extract.raw.md"
+}

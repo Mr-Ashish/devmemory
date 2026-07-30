@@ -148,3 +148,7 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 2. CLI `devmemory validate --json/--strict`; exit 1 on fail.
 3. Tests on good/bad fixtures; thin `scripts/validate-knowledge.sh` + optional GH workflow.
 4. pytest → live Opus dogfood → eval → push.
+
+### Result
+
+**Keep.** 75 tests; repo `validate` ok (1 custom-section warn). Live Opus R7 ship narrative units=4 → showcase `dogfood-run-20260731T032614-a2aa70`, eval 5.0/5.
