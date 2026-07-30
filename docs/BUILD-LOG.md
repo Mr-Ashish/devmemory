@@ -57,3 +57,11 @@ change code
 - Paraphrase-level bullet near-dupe (Jaccard + stems)
 - Assemble-side allowed-dir filter + compact existing knowledge
 - Live Opus 5 showcase `dogfood-run-20260731T022731-f1515c` (blocked paths: none)
+
+## 2026-07-31 · R1 Claude session discovery
+
+- `sources/claude.py`: history multi-turn grouping, project JSONL, cwd path match, epoch-ms sort, env overrides, `pick_latest_unprocessed`
+- CLI: list-sessions Claude-first + turns; extract default prefers latest unprocessed real session
+- Tests: `tests/test_claude_discovery.py` (8)
+- Live Opus showcase `dogfood-run-20260731T023342-e5e026` → knowledge in `src/devmemory/sources/DEV.md`
+- **Backlog:** R1 done → next **R2** (dry-run units+proposed paths; --apply writes)

@@ -56,3 +56,10 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 **Method:** filter dirs with `is_knowledge_blocked`; compact knowledge context.  
 **Result:** live Opus units had zero blocked paths.  
 **Keep.**
+
+## 2026-07-31 · R1 Claude session discovery
+
+**Hypothesis:** Real Claude Code sessions for cwd must surface in list/extract without fixture flags.  
+**Method:** group history by `sessionId`; project JSONL by encoded path; strict cwd path match; newest-first with ms-normalized timestamps; default pick Claude before fixtures; env path overrides for tests.  
+**Result:** 8 discovery tests green; staged live layout `claude=2 unprocessed_claude=2`; default resolve picks real session; Opus dogfood lands `sources/DEV.md`.  
+**Keep.** Real `~/.claude` for this repo still empty until Claude Code is used here (fixtures remain fallback).

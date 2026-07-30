@@ -1,0 +1,80 @@
+```json
+{
+  "summary": "The session's durable knowledge is the Claude session-importer rework in src/devmemory/sources (sessionId grouping, epoch-ms timestamp normalization, repo/subdir project matching, env path overrides, pick_latest_unprocessed) plus the CLI's new Claude-first session resolution, some build patterns not yet recorded (cursor only advances when units>0, offline heuristic extract, frozen pydantic schemas), and live-run debugging steps for hermes_rc/empty units.",
+  "session_ids": ["dogfood-build-narrative"],
+  "units": [
+    {
+      "kind": "dev",
+      "path": "src/devmemory/sources",
+      "action": "merge",
+      "section": "Architecture",
+      "content": "- Two Claude importers feed one discovery API: `ClaudeHistorySource` reads the flat `~/.claude/history.jsonl` prompt log, `ClaudeProjectSource` reads full transcripts from `~/.claude/projects/<encoded-path>/*.jsonl`.\n- `ClaudeHistorySource.list_sessions` buckets history lines by `sessionId` and joins their texts chronologically, so a multi-turn history log yields one `SessionRecord` per session instead of one per prompt.\n- `discover_claude_sessions` merges both sources newest-first and prefers the project record when the same session id appears in both (project JSONL carries richer multi-role transcripts).\n- Records carry `meta[\"turns\"]` (and `meta[\"project_dir\"]` for project sessions) so callers/CLI can show session size without re-reading the files.\n- `pick_latest_unprocessed(sessions, is_processed=...)` is the selection primitive: it scans the newest-first list and returns the first session not in the cursor.",
+      "evidence": [
+        "history.jsonl: flat user prompts (~/.claude/history.jsonl), grouped by sessionId",
+        "Project sessions (richer multi-role transcripts) are preferred when both sources share a session id. Results are newest-first."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": "src/devmemory/sources",
+      "action": "merge",
+      "section": "Design decisions",
+      "content": "- Discovery scopes to the repo by *project path*, not by name: `project_matches_repo` accepts the repo's resolved absolute path and any path under it, so sessions started in a subdirectory of the repo still count.\n- The earlier soft \"repo name appears in project string\" fallback was removed from history filtering because it pulled in unrelated repos; `repo_root=` filtering replaces `project_filter=` for that call path.\n- History/project roots are overridable via `DEVMEMORY_CLAUDE_HISTORY` and `DEVMEMORY_CLAUDE_PROJECTS` specifically so tests can point at fixtures instead of the real `~/.claude`.\n- `encode_project_path` (public; `_encode_project_path` kept as a back-compat alias) implements Claude's `/Users/foo/bar -> -Users-foo-bar` encoding, and project-dir matching layers exact match, encoded-suffix match, then a `repo_name` + `Users` heuristic — de-duped by resolved path.\n- Within a project dir, `*.jsonl` files are read newest-mtime-first rather than in name order.",
+      "evidence": [
+        "\"\"\"True when a Claude history/project path is relevant to repo_root (cwd).",
+        "Override paths with DEVMEMORY_CLAUDE_HISTORY / DEVMEMORY_CLAUDE_PROJECTS for tests."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": "src/devmemory/sources",
+      "action": "merge",
+      "section": "Pitfalls",
+      "content": "- Claude timestamps are mixed types: history often uses epoch **milliseconds** while project records use file mtime seconds. Always sort through `_ts_sort_key`, which coerces str/int/float and divides by 1000 when the value exceeds 1_000_000_000_000 — sorting on `str(timestamp)` (the old behaviour) mis-orders sessions.\n- Never assume `display`/`text`/`project` are strings; malformed lines are guarded with `isinstance` checks and coerced/skipped rather than allowed to raise mid-scan.\n- Secret redaction happens per history line at import time (`contains_secret` → `redact`) before the text is ever bucketed into a record.\n- A session bucket can still be too small after joining turns; drop it when the joined body is under 10 chars instead of emitting an empty record.",
+      "evidence": [
+        "\"\"\"Normalize to unix seconds (Claude history often uses epoch ms).\"\"\"",
+        "if val > 1_000_000_000_000:  # ~2001-09 in ms"
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Design decisions",
+      "content": "- Session resolution in `cli.py` prefers **real** Claude sessions over packaged fixtures at every entry point: explicit `--session-id` searches Claude first then fixtures, the default path uses `pick_latest_unprocessed` over Claude before falling back to unprocessed fixtures, and the last resort is the newest Claude session even if already processed.\n- `devmemory list-sessions` lists Claude rows before fixture rows, adds a `turns` column from `meta`, and prints a `claude=<n> unprocessed_claude=<n> shown=<n>` summary line so it is obvious whether real sessions were discovered at all.",
+      "evidence": [
+        "# default: latest unprocessed *real* Claude session for cwd, then fixtures",
+        "f\"[dim]claude={n_claude} unprocessed_claude={n_unproc} shown={min(len(seen), limit)}[/dim]\""
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Patterns",
+      "content": "- Schemas are frozen pydantic models (`KnowledgeUnit`, `ExtractionResult`) so normalize/apply operate on validated, immutable units.\n- A session is only recorded as processed when it produced `units > 0`, so an empty or failed run never poisons the cursor.\n- An offline heuristic extractor (path inference + command-line scraping) keeps CI green without an OpenRouter key.\n- The improvement loop is: improve product → run extract on this repo itself → update the colocated DEV/USAGE files → capture a redacted showcase run → push.",
+      "evidence": [
+        "Only mark sessions processed when units > 0 (do not poison cursor on empty runs).",
+        "Frozen schemas via pydantic KnowledgeUnit / ExtractionResult."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "usage",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Debugging",
+      "content": "- Non-zero `hermes_rc`: read `extract.raw.stderr` in the run dir, then confirm `HERMES_HOME/.env` is mode 0600 and that `OPENROUTER_API_KEY` is set.\n- Zero units returned: open `extract.raw.md` and look for non-JSON preamble; the offline heuristic path should still yield units, so an empty result there points at the assembled prompt rather than the model.\n- No real sessions being picked up: run `devmemory list-sessions` and read the trailing `claude=… unprocessed_claude=…` counters; if they are 0, point `DEVMEMORY_CLAUDE_HISTORY` / `DEVMEMORY_CLAUDE_PROJECTS` at the right locations (they also exist so tests can use fixtures).\n- Sessions appearing in the wrong order usually means a timestamp was compared as a string — history entries are epoch milliseconds and must go through the seconds normalizer.",
+      "evidence": [
+        "If hermes_rc != 0: check extract.raw.stderr and HERMES_HOME/.env mode 0600 + OPENROUTER_API_KEY.",
+        "If units empty: inspect extract.raw.md for non-JSON; offline fallback should still produce units."
+      ],
+      "confidence": "high"
+    }
+  ]
+}
+```

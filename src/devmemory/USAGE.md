@@ -24,3 +24,10 @@
 - Unit landed under the wrong directory: confirm the target appears in the `EXISTING_DIRS` block of the assembled prompt and that the module dir shows up in the tree sample; blocked trees are filtered out on purpose and will never be accepted.
 - Docs growing on every run: verify near-dupe skipping is active (`apply.dedupe_section_bullets` / `scrub_file_near_dupes`) rather than editing the docs by hand.
 - Before publishing a run, remember `trace.py` redacts `sk-or` / `Bearer` tokens and env assignments on the way into `docs/showcase/` — never copy files there manually.
+
+## Debugging
+
+- Non-zero `hermes_rc`: read `extract.raw.stderr` in the run dir, then confirm `HERMES_HOME/.env` is mode 0600 and that `OPENROUTER_API_KEY` is set.
+- Zero units returned: open `extract.raw.md` and look for non-JSON preamble; the offline heuristic path should still yield units, so an empty result there points at the assembled prompt rather than the model.
+- No real sessions being picked up: run `devmemory list-sessions` and read the trailing `claude=… unprocessed_claude=…` counters; if they are 0, point `DEVMEMORY_CLAUDE_HISTORY` / `DEVMEMORY_CLAUDE_PROJECTS` at the right locations (they also exist so tests can use fixtures).
+- Sessions appearing in the wrong order usually means a timestamp was compared as a string — history entries are epoch milliseconds and must go through the seconds normalizer.

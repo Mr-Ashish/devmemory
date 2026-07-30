@@ -15,7 +15,7 @@ from devmemory import __version__
 from devmemory.apply import apply_result
 from devmemory.extract import extract_session, package_root
 from devmemory.normalize import normalize_extraction
-from devmemory.sources.claude import discover_claude_sessions
+from devmemory.sources.claude import discover_claude_sessions, pick_latest_unprocessed
 from devmemory.sources.fixtures import FixtureSource
 from devmemory.sources.base import SessionRecord
 from devmemory.state import DevMemoryPaths
@@ -65,25 +65,28 @@ def _resolve_session(
             raise click.ClickException(f"Fixture not found: {fixture}")
         return s
     if session_id:
-        # search fixtures then claude
+        # search Claude first (real sessions), then fixtures
+        for cand in discover_claude_sessions(repo, limit=200):
+            if cand.session_id == session_id:
+                return cand
         src = FixtureSource(_fixtures_dir())
         s = src.get(session_id)
         if s:
             return s
-        for cand in discover_claude_sessions(repo, limit=200):
-            if cand.session_id == session_id:
-                return cand
         raise click.ClickException(f"Session not found: {session_id}")
-    # default: first unprocessed fixture or claude session
+    # default: latest unprocessed *real* Claude session for cwd, then fixtures
     paths = DevMemoryPaths.for_repo(repo)
     paths.ensure()
+    claude = discover_claude_sessions(repo, limit=50)
+    picked = pick_latest_unprocessed(claude, is_processed=paths.is_processed)
+    if picked is not None:
+        return picked
     for s in FixtureSource(_fixtures_dir()).list_sessions():
         if not paths.is_processed(s.session_id):
             return s
-    for s in discover_claude_sessions(repo, limit=50):
-        if not paths.is_processed(s.session_id):
-            return s
-    # fall back to first fixture even if processed
+    # fall back: newest Claude even if processed, else first fixture
+    if claude:
+        return claude[0]
     fixtures = FixtureSource(_fixtures_dir()).list_sessions()
     if fixtures:
         return fixtures[0]
@@ -139,18 +142,20 @@ def init_cmd(repo: str | None) -> None:
 @click.option("--claude/--no-claude", default=True)
 @click.option("--limit", default=30, show_default=True)
 def list_sessions(repo: str | None, fixtures: bool, claude: bool, limit: int) -> None:
-    """List discoverable sessions for a repo."""
+    """List discoverable sessions for a repo (Claude first, then fixtures)."""
     root = _repo_path(repo)
     rows: list[SessionRecord] = []
-    if fixtures:
-        rows.extend(FixtureSource(_fixtures_dir()).list_sessions(limit=limit))
+    # Real Claude sessions for cwd first (R1), then package fixtures
     if claude:
         rows.extend(discover_claude_sessions(root, limit=limit))
+    if fixtures:
+        rows.extend(FixtureSource(_fixtures_dir()).list_sessions(limit=limit))
     paths = DevMemoryPaths.for_repo(root)
     table = Table(title=f"Sessions for {root.name}")
     table.add_column("id")
     table.add_column("source")
     table.add_column("processed")
+    table.add_column("turns")
     table.add_column("preview")
     seen = set()
     for s in rows:
@@ -158,10 +163,20 @@ def list_sessions(repo: str | None, fixtures: bool, claude: bool, limit: int) ->
             continue
         seen.add(s.session_id)
         proc = "yes" if paths.is_processed(s.session_id) else "no"
-        table.add_row(s.session_id[:40], s.source, proc, s.preview(60))
+        turns = str((s.meta or {}).get("turns") or "")
+        table.add_row(s.session_id[:40], s.source, proc, turns, s.preview(60))
         if len(seen) >= limit:
             break
     console.print(table)
+    n_claude = sum(1 for s in rows if s.source.startswith("claude"))
+    n_unproc = sum(
+        1
+        for s in rows
+        if s.source.startswith("claude") and not paths.is_processed(s.session_id)
+    )
+    console.print(
+        f"[dim]claude={n_claude} unprocessed_claude={n_unproc} shown={min(len(seen), limit)}[/dim]"
+    )
 
 
 @main.command("status")

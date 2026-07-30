@@ -1,0 +1,44 @@
+[
+  {
+    "path": "src/devmemory/sources/DEV.md",
+    "kind": "dev",
+    "action": "merge",
+    "section": "Architecture",
+    "bytes": 1017
+  },
+  {
+    "path": "src/devmemory/sources/DEV.md",
+    "kind": "dev",
+    "action": "merge",
+    "section": "Design decisions",
+    "bytes": 2024
+  },
+  {
+    "path": "src/devmemory/sources/DEV.md",
+    "kind": "dev",
+    "action": "merge",
+    "section": "Pitfalls",
+    "bytes": 2815
+  },
+  {
+    "path": "src/devmemory/DEV.md",
+    "kind": "dev",
+    "action": "merge",
+    "section": "Design decisions",
+    "bytes": 8277
+  },
+  {
+    "path": "src/devmemory/DEV.md",
+    "kind": "dev",
+    "action": "merge",
+    "section": "Patterns",
+    "bytes": 8830
+  },
+  {
+    "path": "src/devmemory/USAGE.md",
+    "kind": "usage",
+    "action": "merge",
+    "section": "Debugging",
+    "bytes": 3359
+  }
+]

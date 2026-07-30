@@ -58,8 +58,18 @@
 - `_token_set` applies a longest-suffix-first `_stem` (ations/ation/tions/ing/ers/ies/ed/es/s) and drops tokens ≤2 chars; the stem guard requires `len(t) > len(suf) + 3` to avoid over-stemming words like "existing".
 - `dedupe_section_bullets` (first bullet wins) runs on the *existing* section body before new bullets are filtered, so a file that already contains duplicates gets cleaned on the next apply; `scrub_file_near_dupes` applies it per `## ` section and finishes with `strip_placeholders`.
 
+- Session resolution in `cli.py` prefers **real** Claude sessions over packaged fixtures at every entry point: explicit `--session-id` searches Claude first then fixtures, the default path uses `pick_latest_unprocessed` over Claude before falling back to unprocessed fixtures, and the last resort is the newest Claude session even if already processed.
+- `devmemory list-sessions` lists Claude rows before fixture rows, adds a `turns` column from `meta`, and prints a `claude=<n> unprocessed_claude=<n> shown=<n>` summary line so it is obvious whether real sessions were discovered at all.
+
 ## Pitfalls
 
 - Section-append must preserve the blank line before the next `## ` heading: when the trailing newline is consumed, the following heading is glued onto the last bullet and stops rendering as a heading (`- …maintainability issues.## Patterns`). This regression shows up across every merged DEV.md/USAGE.md at once, so check one file's diff before re-running a full apply.
 - Exact-match dedupe is insufficient — the model happily re-emits the same claim in new words (e.g. "breaks JSON — redact after parse" vs "corrupts the payload — run redaction after normalize parses units"). Regression coverage for this lives in `tests/test_apply.py::test_apply_skips_paraphrase_near_dupes`, which asserts the second apply returns `changes == []`.
 - Feeding whole knowledge files back into the prompt encourages restatement; send only compacted H2 + top bullets.
+
+## Patterns
+
+- Schemas are frozen pydantic models (`KnowledgeUnit`, `ExtractionResult`) so normalize/apply operate on validated, immutable units.
+- A session is only recorded as processed when it produced `units > 0`, so an empty or failed run never poisons the cursor.
+- An offline heuristic extractor (path inference + command-line scraping) keeps CI green without an OpenRouter key.
+- The improvement loop is: improve product → run extract on this repo itself → update the colocated DEV/USAGE files → capture a redacted showcase run → push.
