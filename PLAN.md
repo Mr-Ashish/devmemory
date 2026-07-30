@@ -12,7 +12,8 @@
 | 5 | CLI + state machine | **done** — init/list/extract/apply/status/review |
 | E2E | Live extract+apply | **done** — `scripts/smoke-e2e.sh` → `E2E_OK` |
 | ROI pass | Quality fixes | **done** — see below |
-| 6 | Watch + CI validation | later |
+| R3 | Claude Code SessionEnd hook + install one-liner | **done** — scripts/claude-code-hook.sh + install-claude-hook.sh |
+| 6 | Watch + CI validation | later (after R1–R5) |
 | 7 | Multi-source + skill evolution | later |
 
 ## Highest-ROI fixes (quality pass)

@@ -75,3 +75,11 @@ change code
 - Tests: `tests/test_dry_run.py` (5) → 35 total
 - Live Opus showcase `dogfood-run-20260731T024229-b45cff` hermes_rc=0 units=5
 - **Backlog:** R2 done → next **R3** (Claude Code stop-hook / one-liner)
+
+## 2026-07-31 · R3 Claude Code SessionEnd hook
+
+- `scripts/claude-code-hook.sh`: stdin JSON → SessionEnd (Stop opt-in) → background dry-run extract; debounce; never block Claude (exit 0); offline fallback without key; log `.devmemory/hooks.log`
+- `scripts/install-claude-hook.sh`: one-liner merge into `.claude/settings.json` (`--user`, `--with-stop`, `--print`)
+- Tests: `tests/test_claude_hook.py` (9) → 44 total
+- Docs: README + USAGE one-liner and env table
+- **Backlog:** R3 done → next **R4** (preview as unified knowledge git-style diff before apply)

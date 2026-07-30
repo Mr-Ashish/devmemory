@@ -70,3 +70,16 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 **Method:** split `plan_unit`/`plan_result` from apply; extract always plans; mark processed only when `apply=True` and units>0; CLI machine JSON includes `proposed[]`.  
 **Result:** 5 dry-run tests green (35 total); offline dry-run writes zero DEV/USAGE files; live Opus apply hermes_rc=0, showcase `dogfood-run-20260731T024229-b45cff`, eval 4.8/5.  
 **Keep.**
+
+## 2026-07-31 · R3 Claude Code SessionEnd hook
+
+**Hypothesis:** AI-native builders will not retype `devmemory extract` after every Claude Code session; a SessionEnd hook with dry-run default closes the loop without thrash.  
+**Method:** `claude-code-hook.sh` (exit 0 always, background default, debounce, SessionEnd-only unless `DEVMEMORY_HOOK_ON_STOP=1`, offline if no key) + `install-claude-hook.sh` merge into project/user settings.  
+**Result:** 9 hook tests green (44 total); install is idempotent; Stop ignored by default.  
+**Keep.** Prefer SessionEnd over Stop; leave R8 watch for multi-session polling.
+
+## ROI ideas (persona jobs: session→discover→extract→apply→reuse)
+
+1. **R4 preview diff** — unified git-style knowledge diff in dry-run before `--apply` (highest next ROI).
+2. **R5 doctor** — one command for hermes/OpenRouter/sessions/model readiness.
+3. **Hook apply gate** — optional prompt-hook that only suggests extract when session had tool edits (lower thrash than Stop).

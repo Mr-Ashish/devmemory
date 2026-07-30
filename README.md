@@ -222,6 +222,55 @@ devmemory extract --text-file ./notes.md --apply --force
 devmemory extract --offline --apply          # heuristic, no Hermes
 ```
 
+### Claude Code hook (one-liner)
+
+After a Claude Code session ends, extract durable knowledge without retyping the CLI:
+
+```bash
+# from repo root (pip install -e '.[dev]' + ensure-hermes once)
+./scripts/install-claude-hook.sh
+```
+
+That merges a **SessionEnd** command hook into `.claude/settings.json` pointing at `scripts/claude-code-hook.sh`.
+
+| Default | Why |
+|---------|-----|
+| **SessionEnd** (not every Stop) | Stop fires every turn; SessionEnd is once per session |
+| **Background dry-run** | SessionEnd budget is short; Hermes must not block Claude |
+| **Debounce 120s** | No thrash if hooks re-fire |
+| **Offline if no key** | Still produces units without OpenRouter |
+| **Log** | `<repo>/.devmemory/hooks.log` (gitignored) |
+
+```bash
+# print JSON fragment only
+./scripts/install-claude-hook.sh --print
+
+# also wire Stop (debounced; set DEVMEMORY_HOOK_ON_STOP=1)
+./scripts/install-claude-hook.sh --with-stop
+
+# user-global (~/.claude/settings.json)
+./scripts/install-claude-hook.sh --user
+
+# auto-write knowledge (review git after)
+export DEVMEMORY_HOOK_APPLY=1
+```
+
+Manual one-liner for settings (absolute path to the script):
+
+```json
+{
+  "hooks": {
+    "SessionEnd": [{
+      "hooks": [{
+        "type": "command",
+        "command": "/ABS/PATH/devmemory/scripts/claude-code-hook.sh",
+        "timeout": 30
+      }]
+    }]
+  }
+}
+```
+
 | Env | Meaning |
 |-----|---------|
 | `OPENROUTER_API_KEY` | required for live |
@@ -229,6 +278,8 @@ devmemory extract --offline --apply          # heuristic, no Hermes
 | `DEVMEMORY_MODEL` | default now `anthropic/claude-opus-5` |
 | `DEVMEMORY_TOOLSETS` | empty by default; set `terminal` only if needed |
 | `DEVMEMORY_OFFLINE=1` | force offline extract |
+| `DEVMEMORY_HOOK_APPLY=1` | hook writes DEV/USAGE (default dry-run) |
+| `DEVMEMORY_HOOK_ON_STOP=1` | allow per-turn Stop events (not recommended) |
 
 ---
 
@@ -278,7 +329,7 @@ docs/
   experiments/
   showcase/            redacted live runs
 fixtures/sessions/     sample + dogfood narratives
-scripts/               ensure-hermes, smoke, e2e
+scripts/               ensure-hermes, smoke, e2e, Claude Code hook
 tests/
 ```
 
