@@ -178,3 +178,24 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 ### Result
 
 **Keep.** 87 tests; chat-only SessionEnd skips; Write transcript runs. Live Opus showcase `dogfood-run-20260731T033504-281af8`, eval 5.0/5. Core habit loop (discover→extract→apply→reuse + gates) is solid; R8 watch optional.
+
+## 2026-07-31 · fire · R8 watch (mtime / session poll)
+
+**Persona jobs:** session→discover→extract without Claude hook install.
+**Gap:** SessionEnd hook covers in-IDE end; users who forget the hook (or use Hermes/other) need a low-friction poller for new Claude sessions for cwd.
+
+### ROI rank (this fire)
+
+| Rank | Idea | Impact×adoption / effort |
+|------|------|--------------------------|
+| 1 | **R8 `devmemory watch`** | Med — completes roadmap; backup when hook not installed |
+| 2 | Canonical Claude-hook USAGE H2 | P2 |
+| 3 | Semantic embedding dedupe | P2 |
+| 4 | GEPA | Skip |
+
+### Build plan
+
+1. `watch.py`: poll Claude sessions; track seen ids in `.devmemory/watch.json`; pick unprocessed.
+2. CLI `devmemory watch --once/--interval/--apply/--offline`; reuse tool-edit gate when transcript path known.
+3. Tests with staged history/projects env.
+4. pytest → live Opus dogfood → eval → push.

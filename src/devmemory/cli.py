@@ -579,5 +579,112 @@ def review_cmd(repo: str | None) -> None:
     subprocess.run(["git", "diff", "--", *rels], cwd=str(root))
 
 
+@main.command("watch")
+@click.option("--repo", default=None, help="Target repository root")
+@click.option(
+    "--interval",
+    default=60.0,
+    show_default=True,
+    help="Seconds between polls (ignored with --once)",
+)
+@click.option(
+    "--once",
+    is_flag=True,
+    help="Single poll cycle then exit (tests / cron)",
+)
+@click.option(
+    "--max-polls",
+    default=0,
+    show_default=True,
+    help="Stop after N polls (0 = forever when not --once)",
+)
+@click.option(
+    "--apply/--no-apply",
+    default=False,
+    help="Write knowledge files (default dry-run extract)",
+)
+@click.option(
+    "--offline/--live",
+    default=False,
+    help="Heuristic extract without Hermes",
+)
+@click.option("--model", default=None, help="OpenRouter model id")
+@click.option(
+    "--require-edits/--allow-chat",
+    default=True,
+    help="Skip chat-only sessions (tool-edit gate; default on)",
+)
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    help="Print each cycle as JSON lines",
+)
+def watch_cmd(
+    repo: str | None,
+    interval: float,
+    once: bool,
+    max_polls: int,
+    apply: bool,
+    offline: bool,
+    model: str | None,
+    require_edits: bool,
+    as_json: bool,
+) -> None:
+    """Poll Claude sessions for cwd and extract new unprocessed ones (R8).
+
+    Backup when SessionEnd hook is not installed. State: .devmemory/watch.json.
+    Default is dry-run extract; use --apply to write DEV.md/USAGE.md.
+    """
+    from devmemory.watch import watch_loop
+
+    root = _repo_path(repo)
+    console.print(
+        f"[bold]devmemory watch[/bold] repo={root} "
+        f"once={once} interval={interval}s apply={apply} "
+        f"require_edits={require_edits}"
+    )
+
+    def _on_cycle(cycle) -> None:
+        if as_json:
+            print(json.dumps(cycle.to_dict()))
+            return
+        console.print(
+            f"[dim]{cycle.at}[/dim] discovered={cycle.discovered} "
+            f"extracted={cycle.extracted}"
+        )
+        for h in cycle.hits:
+            console.print(
+                f"  - {h.action} id={h.session_id[:36]} "
+                f"units={h.units} {h.detail}"
+            )
+        if not cycle.hits:
+            console.print("  [dim]no new sessions[/dim]")
+
+    cycles = watch_loop(
+        root,
+        interval_s=interval,
+        once=once or max_polls == 1,
+        max_polls=max_polls,
+        apply=apply,
+        offline=offline,
+        model=model,
+        require_edits=require_edits,
+        on_cycle=_on_cycle,
+    )
+    # machine summary
+    print(
+        json.dumps(
+            {
+                "polls": len(cycles),
+                "extracted": sum(c.extracted for c in cycles),
+                "discovered": sum(c.discovered for c in cycles),
+                "once": once,
+                "repo": str(root),
+            }
+        )
+    )
+
+
 if __name__ == "__main__":
     main()
