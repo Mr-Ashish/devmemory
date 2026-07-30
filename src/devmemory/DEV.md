@@ -85,3 +85,5 @@
 
 - Schemas are frozen pydantic models (`KnowledgeUnit` / `ExtractionResult`) in `schema.py`, so malformed LLM output fails at parse time rather than leaking into the apply layer.
 - The processed-session cursor is only advanced when a run yields `units > 0`; empty runs leave the session unprocessed so it can be retried instead of being silently burned.
+
+- Extraction contracts are frozen pydantic models (`KnowledgeUnit` / `ExtractionResult` in `schema.py`); normalize validates the model's JSON against them instead of hand-rolling dict checks.

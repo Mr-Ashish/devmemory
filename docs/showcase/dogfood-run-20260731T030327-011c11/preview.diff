@@ -1,0 +1,19 @@
+diff --git a/src/devmemory/DEV.md b/src/devmemory/DEV.md
+--- a/src/devmemory/DEV.md
++++ b/src/devmemory/DEV.md
+@@ -85,3 +85,5 @@
+ 
+ - Schemas are frozen pydantic models (`KnowledgeUnit` / `ExtractionResult`) in `schema.py`, so malformed LLM output fails at parse time rather than leaking into the apply layer.
+ - The processed-session cursor is only advanced when a run yields `units > 0`; empty runs leave the session unprocessed so it can be retried instead of being silently burned.
++
++- Extraction contracts are frozen pydantic models (`KnowledgeUnit` / `ExtractionResult` in `schema.py`); normalize validates the model's JSON against them instead of hand-rolling dict checks.
+
+diff --git a/src/devmemory/USAGE.md b/src/devmemory/USAGE.md
+--- a/src/devmemory/USAGE.md
++++ b/src/devmemory/USAGE.md
+@@ -31,3 +31,5 @@
+ - Zero units returned: open `extract.raw.md` and look for non-JSON preamble; the offline heuristic path should still yield units, so an empty result there points at the assembled prompt rather than the model.
+ - No real sessions being picked up: run `devmemory list-sessions` and read the trailing `claude=… unprocessed_claude=…` counters; if they are 0, point `DEVMEMORY_CLAUDE_HISTORY` / `DEVMEMORY_CLAUDE_PROJECTS` at the right locations (they also exist so tests can use fixtures).
+ - Sessions appearing in the wrong order usually means a timestamp was compared as a string — history entries are epoch milliseconds and must go through the seconds normalizer.
++
++- `hermes_rc != 0`: read `extract.raw.stderr`, then verify the Hermes home `.env` is mode 0600 and actually carries `OPENROUTER_API_KEY`.

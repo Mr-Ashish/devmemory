@@ -101,4 +101,5 @@ change code
 - Flags: `--json`, `--strict` (exit 1 unless ready_live); machine JSON line always
 - Never prints raw keys — fingerprint only
 - Tests: `tests/test_doctor.py` (7) → 58 total
-- **Backlog:** R5 done → R1–R5 proven; next optional R6 anti-restate
+- Live: `doctor --strict` ready_live=yes; Opus showcase `dogfood-run-20260731T030327-011c11` hermes_rc=0; smoke-e2e **E2E_OK**; eval 4.7/5
+- **Milestone:** R1–R5 proven (tests+live). Next optional **R6** anti-restate

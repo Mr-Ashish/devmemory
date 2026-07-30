@@ -1,0 +1,20 @@
+[
+  {
+    "path": "src/devmemory/DEV.md",
+    "kind": "dev",
+    "action": "merge",
+    "section": "Patterns",
+    "bytes": 10380,
+    "applied": true,
+    "unit_path": "src/devmemory"
+  },
+  {
+    "path": "src/devmemory/USAGE.md",
+    "kind": "usage",
+    "action": "merge",
+    "section": "Debugging",
+    "bytes": 3498,
+    "applied": true,
+    "unit_path": "src/devmemory"
+  }
+]
