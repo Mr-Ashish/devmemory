@@ -288,6 +288,89 @@ def doctor_cmd(repo: str | None, as_json: bool, strict: bool) -> None:
         raise SystemExit(1)
 
 
+@main.command("validate")
+@click.option("--repo", default=None, help="Target repository root")
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    help="Machine-readable JSON on stdout",
+)
+@click.option(
+    "--strict",
+    is_flag=True,
+    help="Exit 1 on warnings as well as failures (CI hard gate)",
+)
+def validate_cmd(repo: str | None, as_json: bool, strict: bool) -> None:
+    """Validate colocated DEV.md / USAGE.md form (no transcripts, no LLM).
+
+    Checks H1, placeholders, empty H2, glued headings, blocked paths, secrets.
+    Exit 0 when form is clean; --strict also fails on non-canonical section warnings.
+    """
+    from devmemory.validate import run_validate
+
+    root = _repo_path(repo)
+    report = run_validate(root)
+    fails = [i for i in report.issues if i.status == "fail"]
+    warns = [i for i in report.issues if i.status == "warn"]
+
+    if as_json:
+        print(json.dumps(report.to_dict(), indent=2))
+    else:
+        console.print(f"[bold]devmemory validate[/bold] v{report.version}")
+        console.print(f"  repo: {report.repo}")
+        console.print(f"  knowledge files: {report.file_count}")
+        table = Table(title="Knowledge form")
+        table.add_column("path")
+        table.add_column("check")
+        table.add_column("status")
+        table.add_column("message")
+        status_style = {"ok": "green", "warn": "yellow", "fail": "red", "info": "cyan"}
+        shown = 0
+        for fr in report.files:
+            for iss in fr.issues:
+                if iss.status == "ok" and (fails or warns):
+                    continue  # keep table focused when there are problems
+                style = status_style.get(iss.status, "white")
+                table.add_row(
+                    iss.path[:48],
+                    iss.check,
+                    f"[{style}]{iss.status}[/{style}]",
+                    iss.message[:72],
+                )
+                shown += 1
+                if shown >= 40:
+                    break
+            if shown >= 40:
+                break
+        if shown == 0:
+            table.add_row("(none)", "form", "[green]ok[/green]", "no knowledge files")
+        console.print(table)
+        ok_s = "yes" if report.ok else "no"
+        console.print(
+            f"  ok=[{'green' if report.ok else 'red'}]{ok_s}[/]  "
+            f"fail={len(fails)}  warn={len(warns)}"
+        )
+        print(
+            json.dumps(
+                {
+                    "ok": report.ok,
+                    "file_count": report.file_count,
+                    "fail": len(fails),
+                    "warn": len(warns),
+                    "repo": report.repo,
+                    "version": report.version,
+                }
+            )
+        )
+
+    if strict:
+        if fails or warns:
+            raise SystemExit(1)
+    elif fails:
+        raise SystemExit(1)
+
+
 @main.command("extract")
 @click.option("--repo", default=None, help="Target repository")
 @click.option("--session", "session_id", default=None, help="Session id")

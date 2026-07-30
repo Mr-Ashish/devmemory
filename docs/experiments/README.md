@@ -126,3 +126,25 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 ### Result
 
 **Keep.** Live Opus: narrative restates dropped; only R6 delta units applied (+4/-0). Offline fallback gated so intentional `units:[]` is not replaced. Showcase `dogfood-run-20260731T031810-c66390`, eval 5.0/5, 63 tests.
+
+## 2026-07-31 · fire · R7 CI form-validator
+
+**Persona jobs:** apply→reuse (and CI gate without transcripts).
+**Gap:** README promises “CI validates knowledge form, never transcripts” but there is no `devmemory validate` / CI workflow — only live extract + doctor.
+
+### ROI rank (this fire)
+
+| Rank | Idea | Impact×adoption / effort |
+|------|------|--------------------------|
+| 1 | **R7 CI form-validator** | High for trust/reuse — blocks hollow/glued/secret knowledge on PR |
+| 2 | Hook apply gate (tool-edit only) | Med — less thrash after chat-only sessions |
+| 3 | R8 `watch` | Low until real Claude sessions land here |
+| 4 | Semantic embedding dedupe | P2 — R6 already at 5.0 dedupe |
+| 5 | GEPA | Skip |
+
+### Build plan (R7)
+
+1. `validate.py`: discover DEV.md/USAGE.md; checks H1, placeholders, empty H2, glued `##`, blocked path, secrets, unknown section warn.
+2. CLI `devmemory validate --json/--strict`; exit 1 on fail.
+3. Tests on good/bad fixtures; thin `scripts/validate-knowledge.sh` + optional GH workflow.
+4. pytest → live Opus dogfood → eval → push.

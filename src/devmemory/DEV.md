@@ -8,7 +8,9 @@
 - `agent/` holds SOUL.md, config.yaml and extract-prompt.md used to seed the Hermes home before a live run.
 - Runtime state is written under `.devmemory/` (gitignored); curated, redacted public traces are written under `docs/showcase/`.
 - Control plane mirrors the Luffy PR-review agent shape: assemble → `hermes -z` → normalize → apply → human git review.
-- `extract_session` records per-stage timings (assemble/extract/normalize/apply/total) into `timings.json` in the run dir and surfaces them on `ExtractOutcome`.## Design decisions
+- `extract_session` records per-stage timings (assemble/extract/normalize/apply/total) into `timings.json` in the run dir and surfaces them on `ExtractOutcome`.
+
+## Design decisions
 
 - Extraction pipeline stages: assemble → hermes extract → normalize → apply.
 - Hermes is used as a CLI dependency (hermes -z), not included as vendored source.
@@ -27,7 +29,9 @@
 
 - `DEV_TEMPLATE` / `USAGE_TEMPLATE` in `apply.py` contain only the H1 and the blockquote — canonical H2 sections are created on first real content instead of being pre-scaffolded empty.
 - `sections.strip_placeholders` ends by calling `scrub_empty_h2_sections`, so placeholder removal and hollow-heading removal are a single pass on every apply.
-- `scrub_empty_h2_sections` drops an `## ` heading plus its trailing blanks when every body line up to the next H2 is whitespace, keeps H1/blockquotes untouched, and collapses runs of blank lines to at most two.## Patterns
+- `scrub_empty_h2_sections` drops an `## ` heading plus its trailing blanks when every body line up to the next H2 is whitespace, keeps H1/blockquotes untouched, and collapses runs of blank lines to at most two.
+
+## Patterns
 
 - DEV.md captures architecture, design decisions, patterns, pitfalls, and module-specific engineering context.
 - USAGE.md captures setup steps, commands, debugging, troubleshooting, and workflows essential for working with the code part.
@@ -36,7 +40,9 @@
 - Schemas are frozen pydantic models: `KnowledgeUnit` / `ExtractionResult` in `schema.py`.
 - A session is only marked processed when `units > 0`, so empty or failed runs never poison the cursor.
 - An offline heuristic extract (path inference + command-line regex) keeps CI green without an OpenRouter key; it also acts as a fallback when a live run returns no parseable units.
-- Dogfood loop: improve the product → run extract on this repo → update DEV/USAGE → capture a showcase package → push.## Pitfalls
+- Dogfood loop: improve the product → run extract on this repo → update DEV/USAGE → capture a showcase package → push.
+
+## Pitfalls
 - Redacting secrets before parsing breaks JSON — run redaction on string fields *after* the JSON parse in `normalize.py`.
 - Without bullet near-dupe skipping, re-running extract thrashes DEV.md/USAGE.md with restated content.
 - LLM-invented paths create junk doc trees — always snap a unit's path onto an existing directory (or `.`).
@@ -67,6 +73,5 @@
 - Regression coverage lives in `tests/test_fixtures_and_offline.py`: `test_intentional_empty_units_skips_offline_fallback` monkeypatches `devmemory.extract.offline_extract` to raise if called, and `test_parse_failure_still_uses_offline_fallback` asserts non-JSON output does yield heuristic units with `offline-fallback` in the model name.
 
 ## Patterns
-
 
 - The processed-session cursor is only advanced when a run yields `units > 0`; empty runs leave the session unprocessed so it can be retried instead of being silently burned.
