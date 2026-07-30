@@ -15,6 +15,9 @@
 - Machine-readable output for CI: `devmemory validate --json`; exit code 1 on failure.
 - Local gate that also fails on warnings: `./scripts/validate-knowledge.sh` (runs `devmemory validate --strict`).
 
+- Long-running background watcher that writes knowledge: `devmemory watch --interval 120 --apply`.
+- Watcher tests: `pytest tests/test_watch.py -q`.
+
 ## Debugging
 
 - `hermes_rc != 0`: inspect `extract.raw.stderr` in the run dir, and confirm the seeded `HERMES_HOME/.env` is mode 0600 and contains `OPENROUTER_API_KEY`.

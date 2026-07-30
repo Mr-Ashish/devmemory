@@ -1,0 +1,70 @@
+```json
+{
+  "summary": "The session shipped R8: a new `watch.py` poller module that acts as a backup for the SessionEnd hook. Durable knowledge includes its state fingerprinting/state-file design, the history.jsonl vs per-session-transcript boundary for the tool-edit gate, poison-loop prevention via mark_seen, max_extracts throttling, and the new `devmemory watch` command surface plus its loop-mode pitfall.",
+  "session_ids": ["r8-watch-ship"],
+  "units": [
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Architecture",
+      "content": "- `watch.py` is a polling watcher that discovers new Claude sessions for the repo cwd and drives the normal extract pipeline for each candidate.\n- Watcher state lives in `.devmemory/watch.json` and records seen-session fingerprints of the form `id|timestamp|textlen`, so a session that grows after being seen is re-detected while unchanged sessions are skipped.\n- CLI surface: `devmemory watch` with `--once` / `--interval` / `--apply` / `--offline` / `--require-edits` / `--allow-chat` / `--json`.",
+      "evidence": [
+        "New module src/devmemory/watch.py polls Claude sessions for the repo cwd.",
+        "State under .devmemory/watch.json tracks seen session fingerprints (id|timestamp|textlen)."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Design decisions",
+      "content": "- `watch` exists as a backup path for repos where the Claude Code SessionEnd hook is not installed; like the hook, its default extract is dry-run and writing requires `--apply`.\n- The tool-edit gate is applied only to per-session project JSONL transcripts, never to the shared `history.jsonl`: history is multi-session, so gating it as one transcript would false-skip every row.\n- `max_extracts` per poll cycle defaults to 3 to avoid stampeding Hermes with concurrent/backlogged extractions.",
+      "evidence": [
+        "Watch is a backup when SessionEnd hook is not installed; default extract is dry-run.",
+        "Tool-edit gate applies only to per-session project JSONL transcripts, not shared history.jsonl (scanning history would false-skip every row).",
+        "max_extracts per cycle defaults to 3 to avoid stampeding Hermes."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Patterns",
+      "content": "- `find_watch_candidates` filters out both cursor-processed sessions and already-seen fingerprints before proposing work.\n- `mark_seen` is called after an extract *and* after an extract error, so a session that reliably fails cannot become a poison loop that blocks every later cycle.\n- `watch --once` is the entry point for cron jobs and tests; each cycle prints a machine-readable JSON summary line on stdout.",
+      "evidence": [
+        "find_watch_candidates skips processed and already-seen fingerprints; mark_seen after extract or error to prevent poison loops.",
+        "watch --once is the cron/tests entry; machine JSON summary line on stdout."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Pitfalls",
+      "content": "- Do not feed the multi-session `history.jsonl` into the tool-edit gate as if it were a single transcript — the gate only reasons correctly about one per-session project JSONL at a time.\n- `watch` enters a forever loop only when neither `--once` nor `--max-polls` is given; tests must always pass `--once` or they will hang.",
+      "evidence": [
+        "Do not pass multi-session history.jsonl into the tool-edit gate as if it were one transcript.",
+        "Forever loop only when neither --once nor --max-polls; tests must use --once."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "usage",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Common commands",
+      "content": "- One-shot dry poll with no LLM call and machine-readable output: `devmemory watch --once --offline --json`.\n- Long-running background watcher that writes knowledge: `devmemory watch --interval 120 --apply`.\n- Watcher tests: `pytest tests/test_watch.py -q`.",
+      "evidence": [
+        "devmemory watch --once --offline --json",
+        "devmemory watch --interval 120 --apply",
+        "pytest tests/test_watch.py -q"
+      ],
+      "confidence": "high"
+    }
+  ]
+}
+```

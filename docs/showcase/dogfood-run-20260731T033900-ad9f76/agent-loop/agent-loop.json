@@ -1,0 +1,43 @@
+{
+  "run_id": "run-20260731T033900-ad9f76",
+  "model": "anthropic/claude-opus-5",
+  "hermes_rc": 0,
+  "units": 5,
+  "summary": "The session shipped R8: a new `watch.py` poller module that acts as a backup for the SessionEnd hook. Durable knowledge includes its state fingerprinting/state-file design, the history.jsonl vs per-session-transcript boundary for the tool-edit gate, poison-loop prevention via mark_seen, max_extracts throttling, and the new `devmemory watch` command surface plus its loop-mode pitfall.",
+  "usage": {
+    "estimated_cost_usd": 0.13085875,
+    "cost_status": "estimated",
+    "cost_source": "provider_models_api",
+    "input_tokens": 2,
+    "output_tokens": 1737,
+    "cache_read_tokens": 20010,
+    "cache_write_tokens": 12387,
+    "reasoning_tokens": 53,
+    "total_tokens": 34136,
+    "api_calls": 1,
+    "model": "anthropic/claude-opus-5",
+    "provider": "openrouter",
+    "session_id": "20260731_033902_b639e5",
+    "completed": true,
+    "failed": false,
+    "service_tier": null
+  },
+  "timings": {
+    "assemble_s": 0.106,
+    "extract_s": 22.643,
+    "normalize_s": 0.001,
+    "apply_s": 2.273,
+    "total_s": 25.026
+  },
+  "messages_meta": {
+    "db": "/Users/ashishmishra/Documents/experimentation/devmemory/.devmemory/hermes-home/state.db",
+    "messages": 2,
+    "session_id": "20260731_020504_9bd102"
+  },
+  "pipeline": [
+    "assemble",
+    "hermes_extract",
+    "normalize",
+    "apply"
+  ]
+}

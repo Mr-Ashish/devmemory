@@ -19,6 +19,7 @@
 - List sessions: `devmemory list-sessions`
 - Tests: `pytest -q`
 - Full smoke: `./scripts/smoke-e2e.sh`
+- Poll Claude sessions (backup when hook missing): `devmemory watch --once --json` (or `--interval 120 --apply`)
 
 ## Claude Code hook (SessionEnd)
 

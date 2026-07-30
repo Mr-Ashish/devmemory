@@ -199,3 +199,7 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 2. CLI `devmemory watch --once/--interval/--apply/--offline`; reuse tool-edit gate when transcript path known.
 3. Tests with staged history/projects env.
 4. pytest → live Opus dogfood → eval → push.
+
+### Result
+
+**Keep.** 92 tests; `--once` machine JSON; history.jsonl not false-gated. Live Opus showcase `dogfood-run-20260731T033900-ad9f76`, eval 5.0/5. **R1–R8 complete** — remaining ideas P2+.

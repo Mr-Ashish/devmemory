@@ -133,3 +133,13 @@ change code
 - Tests: `tests/test_hook_gate.py` (+ hook integration) → **87 total**
 - Live Opus showcase `dogfood-run-20260731T033504-281af8` hermes_rc=0 units=4 · eval **5.0/5**
 - **Backlog:** core habit loop solid. Optional **R8 watch**; else P2 polish only
+
+## 2026-07-31 · R8 watch
+
+- `watch.py` + `devmemory watch`: poll Claude sessions; `.devmemory/watch.json` fingerprints
+- Flags: `--once`, `--interval`, `--max-polls`, `--apply`, `--offline`, `--require-edits/--allow-chat`, `--json`
+- Tool-edit gate only on per-session project JSONL (not multi-session history.jsonl)
+- `mark_seen` after success or error; max 3 extracts per cycle
+- Tests: `tests/test_watch.py` → **92 total**
+- Live Opus showcase `dogfood-run-20260731T033900-ad9f76` hermes_rc=0 units=5 · eval **5.0/5**
+- **Milestone:** R1–R8 complete. Remaining backlog is P2+ only

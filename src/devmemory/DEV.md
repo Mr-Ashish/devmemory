@@ -16,6 +16,10 @@
 - `hook_gate.py` owns the SessionEnd run/skip decision: `should_run_extract_for_session` is called by `scripts/claude-code-hook.sh` *before* it spawns the extract process, so a skipped session costs no Hermes/CLI startup.
 - `DEVMEMORY_HOOK_FORCE=1` short-circuits the gate entirely (always extract); `DEVMEMORY_HOOK_REQUIRE_EDITS=0` restores the pre-gate always-run behavior.
 
+- `watch.py` is a polling watcher that discovers new Claude sessions for the repo cwd and drives the normal extract pipeline for each candidate.
+- Watcher state lives in `.devmemory/watch.json` and records seen-session fingerprints of the form `id|timestamp|textlen`, so a session that grows after being seen is re-detected while unchanged sessions are skipped.
+- CLI surface: `devmemory watch` with `--once` / `--interval` / `--apply` / `--offline` / `--require-edits` / `--allow-chat` / `--json`.
+
 ## Design decisions
 
 - Extraction pipeline stages: assemble → hermes extract → normalize → apply.
@@ -40,6 +44,10 @@
 - Form validation is deliberately a separate, dependency-free stage from extraction: `validate.py` is pure Python with no Hermes subprocess, no OpenRouter call and no session/transcript access, so CI can gate knowledge shape on any runner without an API key.
 - `--strict` (fail on warnings) is reserved for the local/script path; CI stays soft so canonical-H2 drift reports without blocking merges.
 
+- `watch` exists as a backup path for repos where the Claude Code SessionEnd hook is not installed; like the hook, its default extract is dry-run and writing requires `--apply`.
+- The tool-edit gate is applied only to per-session project JSONL transcripts, never to the shared `history.jsonl`: history is multi-session, so gating it as one transcript would false-skip every row.
+- `max_extracts` per poll cycle defaults to 3 to avoid stampeding Hermes with concurrent/backlogged extractions.
+
 ## Patterns
 
 - DEV.md captures architecture, design decisions, patterns, pitfalls, and module-specific engineering context.
@@ -56,6 +64,10 @@
 - Edit-class tool allowlist for the hook gate: `Write`, `Edit`, `MultiEdit`, `NotebookEdit`, `Create`, `str_replace`, `apply_patch`, `Delete`.
 - Detection reads Claude `tool_use` content blocks or `tool_complete` traces, fronted by a fast regex pre-scan over JSONL lines so large transcripts are not fully parsed.
 - Bash-only sessions count as non-edits: shell activity is not treated as a durable code-write signal.
+
+- `find_watch_candidates` filters out both cursor-processed sessions and already-seen fingerprints before proposing work.
+- `mark_seen` is called after an extract *and* after an extract error, so a session that reliably fails cannot become a poison loop that blocks every later cycle.
+- `watch --once` is the entry point for cron jobs and tests; each cycle prints a machine-readable JSON summary line on stdout.
 
 ## Pitfalls
 - Redacting secrets before parsing breaks JSON — run redaction on string fields *after* the JSON parse in `normalize.py`.
@@ -74,6 +86,8 @@
 
 - Do not treat every JSON `name` field in a transcript as a tool invocation — require a `tool_use` type or surrounding tool-event context, or unrelated payload keys produce false edit signals.
 - The gate must never block Claude: gate exceptions and import errors fall through to *allow* extract, and the hook script always exits 0.
+
+- `watch` enters a forever loop only when neither `--once` nor `--max-polls` is given; tests must always pass `--once` or they will hang.
 
 ## Design decisions
 
