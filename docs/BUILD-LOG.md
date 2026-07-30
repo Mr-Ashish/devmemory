@@ -143,3 +143,10 @@ change code
 - Tests: `tests/test_watch.py` → **92 total**
 - Live Opus showcase `dogfood-run-20260731T033900-ad9f76` hermes_rc=0 units=5 · eval **5.0/5**
 - **Milestone:** R1–R8 complete. Remaining backlog is P2+ only
+
+## 2026-07-31 · stability fire 1/3 (no P0/P1)
+
+- Product pass found **no P0/P1** (only P2: custom USAGE H2, embeddings, GEPA)
+- No code change; health dogfood narrative re-run → hermes_rc=0, **0** knowledge writes (anti-restate)
+- Showcase `dogfood-run-20260731T034257-9c4ca1` · eval **5.0/5** · pytest 92
+- DONE counter: **1/3** consecutive no-P0/P1 fires

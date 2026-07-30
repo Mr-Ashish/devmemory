@@ -1,0 +1,22 @@
+{
+  "units": [
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Patterns",
+      "content": "- Advance the processed-session cursor only when a run produced `units > 0`; an empty extraction must leave the session unmarked so a later (fixed or live) run can retry it instead of the cursor being poisoned.\n- The offline heuristic extractor exists so CI can run without an OpenRouter key: it derives unit paths by inference from the session text and harvests command-style lines, yielding real units rather than an empty result.",
+      "evidence": [
+        "Only mark sessions processed when units > 0 (do not poison cursor on empty runs).",
+        "Offline heuristic extract for CI without OpenRouter (path inference + command lines)."
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "summary": "Almost every claim in this session is already captured in DEV.md/USAGE.md or the claim index (control-plane shape, module layout, model pinning, apply-layer boundary, redaction-after-parse, dedupe, path snapping, commands, debug tips). The only non-restated durable knowledge is the cursor-advance rule (only mark a session processed when units > 0) and the mechanism of the offline heuristic extractor used when no OpenRouter key is available.",
+  "session_ids": [
+    "dogfood-build-narrative"
+  ],
+  "model": "anthropic/claude-opus-5",
+  "raw_path": "/Users/ashishmishra/Documents/experimentation/devmemory/.devmemory/out/run-20260731T034257-9c4ca1/extract.raw.md"
+}

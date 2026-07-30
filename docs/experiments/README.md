@@ -203,3 +203,21 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 ### Result
 
 **Keep.** 92 tests; `--once` machine JSON; history.jsonl not false-gated. Live Opus showcase `dogfood-run-20260731T033900-ad9f76`, eval 5.0/5. **R1–R8 complete** — remaining ideas P2+.
+
+## 2026-07-31 · fire · stability (no P0/P1) · 1/3
+
+**Persona jobs:** session→discover→extract→apply→reuse — all covered by R1–R8 + tool-edit gate.
+
+### ROI rank (this fire)
+
+| Rank | Idea | Priority |
+|------|------|----------|
+| — | *(none)* | **no P0/P1** |
+| 1 | Canonicalize USAGE H2 `Claude Code hook (SessionEnd)` | P2 (validate warn only) |
+| 2 | Semantic embedding dedupe | P2 |
+| 3 | Auto-install hook on `devmemory init` | P2 |
+| 4 | GEPA / self-evolution | deferred |
+
+### Decision
+
+**No build.** Core habit loop is solid (pytest 92, doctor ready_live, validate ok). This fire is health dogfood only. Consecutive no-P0/P1 fires: **1/3** toward scheduler DONE.
