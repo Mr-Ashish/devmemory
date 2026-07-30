@@ -1,0 +1,6 @@
+{
+  "session_id": "sample-auth-module",
+  "project": "/Users/ashishmishra/Documents/experimentation/devmemory",
+  "timestamp": "2026-07-30T12:00:00Z",
+  "text": "We implemented JWT auth for the API.\n\nArchitecture decision: put auth middleware in `src/auth/` and keep token verification separate from user lookup. Tokens are signed with HS256 for now; we will move to RS256 later.\n\nPattern: every protected route uses `require_auth` decorator which reads `Authorization: Bearer`.\n\nPitfall: do not log the raw Authorization header — it contains secrets.\n\nCommands that worked:\n- pytest tests/auth -q\n- uvicorn app.main:app --reload --port 8000\n\nDebug tip: if 401 on valid token, check clock skew and that AUTH_SECRET matches the issuer.\n\nAlso: usage for local dev is `export AUTH_SECRET=dev-only` then run uvicorn as above."
+}

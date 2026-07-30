@@ -1,0 +1,6 @@
+{
+  "session_id": "sample-cli-pipeline",
+  "project": "/Users/ashishmishra/Documents/experimentation/devmemory",
+  "timestamp": "2026-07-30T15:00:00Z",
+  "text": "Built the extraction pipeline as assemble → hermes extract → normalize → apply.\n\nDesign decision: Hermes is a CLI dependency (hermes -z), not vendored source. OpenRouter is the provider.\n\nModule layout: src/devmemory/{assemble,extract,normalize,apply,cli}.py\n\nUsage:\n- pip install -e '.[dev]'\n- devmemory extract --fixture sample-auth-module --apply\n- pytest -q\n\nPitfall: never commit .devmemory/ run artifacts or raw transcripts."
+}

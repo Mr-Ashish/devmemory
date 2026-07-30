@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "devmemory"
+version = "0.1.0"
+description = "Continuous knowledge extraction into colocated DEV.md / USAGE.md"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Mr-Ashish" }]
+dependencies = [
+  "click>=8.1",
+  "pydantic>=2.0",
+  "rich>=13.0",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+devmemory = "devmemory.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/devmemory"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

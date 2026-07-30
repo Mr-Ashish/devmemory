@@ -1,0 +1,13 @@
+# Hermes Agent config for devmemory extraction (local).
+# Secrets: HERMES_HOME/.env or process env OPENROUTER_API_KEY.
+
+model:
+  provider: openrouter
+  # Override with DEVMEMORY_MODEL / OPENROUTER_MODEL.
+  default: openai/gpt-4.1-mini
+
+terminal:
+  backend: local
+
+display:
+  tool_progress: verbose
