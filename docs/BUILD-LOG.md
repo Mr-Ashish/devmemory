@@ -82,4 +82,5 @@ change code
 - `scripts/install-claude-hook.sh`: one-liner merge into `.claude/settings.json` (`--user`, `--with-stop`, `--print`)
 - Tests: `tests/test_claude_hook.py` (9) → 44 total
 - Docs: README + USAGE one-liner and env table
+- Live Opus showcase `dogfood-run-20260731T025126-b52ea6` hermes_rc=0 units=4 · eval 4.8/5
 - **Backlog:** R3 done → next **R4** (preview as unified knowledge git-style diff before apply)

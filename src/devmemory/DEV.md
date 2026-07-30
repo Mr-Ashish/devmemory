@@ -72,6 +72,8 @@
 - Units pointing at directories that do not exist create junk trees; every unit path must snap to an existing repo directory before write.
 - Re-running extract without bullet near-dupe skipping thrashes the DEV/USAGE files with restated bullets.
 
+- Redaction order matters: scrubbing secrets *before* JSON parsing corrupts the payload (escapes/quotes inside strings), so `normalize.py` parses first and only then redacts string fields.
+
 ## Patterns
 
 - Schemas are frozen pydantic models (`KnowledgeUnit`, `ExtractionResult`) so normalize/apply operate on validated, immutable units.

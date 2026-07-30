@@ -1,0 +1,60 @@
+{
+  "units": [
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Patterns",
+      "content": "- Pipeline contracts are frozen pydantic models (`KnowledgeUnit`, `ExtractionResult`) in `schema.py`, so a malformed LLM payload fails at parse time rather than reaching `apply.py`.\n- The processed-session cursor is only advanced when a run produced units > 0; empty runs deliberately leave the cursor untouched so a failed extraction can be retried without `--force`.\n- A pure-heuristic offline extractor (path inference from mentioned files + command-line scraping) exists so CI can exercise the full assemble → normalize → apply chain with no OpenRouter key.",
+      "evidence": [
+        "Frozen schemas via pydantic KnowledgeUnit / ExtractionResult.",
+        "Only mark sessions processed when units > 0 (do not poison cursor on empty runs).",
+        "Offline heuristic extract for CI without OpenRouter (path inference + command lines)."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Pitfalls",
+      "content": "- Redaction order matters: scrubbing secrets *before* JSON parsing corrupts the payload (escapes/quotes inside strings), so `normalize.py` parses first and only then redacts string fields.\n- Giving the extract step terminal/tool access makes runs slower and pulls the model away from the strict JSON contract — leave toolsets empty unless a run genuinely needs shell access.\n- Model-invented paths grow junk directory trees in the repo; every unit path must snap to a directory that already exists.",
+      "evidence": [
+        "Pre-parse secret redaction can break JSON — redact string fields after parse.",
+        "Using terminal tools on extract slows and distracts the model from JSON contract.",
+        "Invented paths create junk trees — always snap to existing directories."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": ".",
+      "action": "merge",
+      "section": "Patterns",
+      "content": "- Development runs as a dogfood loop: improve the product → run `devmemory extract` on this repo's own sessions → update the colocated DEV/USAGE files → capture a redacted showcase run → push.\n- Test floor is ~19 unit tests covering redaction, normalize, apply dedupe, path snapping and offline extract; new pipeline behaviour is expected to arrive with a test in that set.\n- Live eval gate: `smoke-hermes` must return a pong and a fixture extract must produce a `src/auth` DEV/USAGE split at high confidence; the dogfood eval additionally requires that root and package DEV.md improve without reintroducing `_(none yet)_` placeholders.",
+      "evidence": [
+        "Dogfood loop: improve product → run extract on self → update DEV/USAGE → capture showcase → push.",
+        "Unit tests cover redaction, normalize, apply dedupe, path snap, offline extract (target ≥19 tests).",
+        "Dogfood eval: self-extract improves root and package DEV.md without reintroducing _(none yet)_ placeholders."
+      ],
+      "confidence": "medium"
+    },
+    {
+      "kind": "usage",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Debugging",
+      "content": "- Zero units returned: open `extract.raw.md` in the run dir and look for non-JSON prose or a truncated fence — the model answered but broke the contract; the offline heuristic path should still yield units, so an empty offline run points at assemble/paths rather than the model.",
+      "evidence": [
+        "If units empty: inspect extract.raw.md for non-JSON; offline fallback should still produce units."
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "summary": "Session yields durable engineering knowledge not yet recorded: frozen pydantic schemas and cursor/offline-fallback invariants in the pipeline, ordering/pitfall rules around redaction and path snapping, the repo-level dogfood + eval discipline, and a debug path for empty extraction results.",
+  "session_ids": [
+    "dogfood-build-narrative"
+  ],
+  "model": "anthropic/claude-opus-5",
+  "raw_path": "/Users/ashishmishra/Documents/experimentation/devmemory/.devmemory/out/run-20260731T025126-b52ea6/extract.raw.md"
+}

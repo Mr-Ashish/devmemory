@@ -18,3 +18,9 @@
 - Hermes runs extract with empty toolsets (pure reasoning over assembled context); `DEVMEMORY_TOOLSETS=terminal` is an explicit opt-in override.
 
 - Quality bar for the pipeline is tracked at three levels: unit tests over redaction / normalize / apply-dedupe / path-snap / offline extract (target ≥19 tests), a live eval (smoke-hermes pong plus a fixture extract that must produce a `src/auth` DEV/USAGE split at high confidence), and a dogfood eval (self-extract must improve root and package DEV.md without reintroducing `_(none yet)_` placeholders).
+
+## Patterns
+
+- Development runs as a dogfood loop: improve the product → run `devmemory extract` on this repo's own sessions → update the colocated DEV/USAGE files → capture a redacted showcase run → push.
+- Test floor is ~19 unit tests covering redaction, normalize, apply dedupe, path snapping and offline extract; new pipeline behaviour is expected to arrive with a test in that set.
+- Live eval gate: `smoke-hermes` must return a pong and a fixture extract must produce a `src/auth` DEV/USAGE split at high confidence; the dogfood eval additionally requires that root and package DEV.md improve without reintroducing `_(none yet)_` placeholders.
