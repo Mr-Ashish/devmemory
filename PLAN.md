@@ -13,6 +13,7 @@
 | E2E | Live extract+apply | **done** — `scripts/smoke-e2e.sh` → `E2E_OK` |
 | ROI pass | Quality fixes | **done** — see below |
 | R3 | Claude Code SessionEnd hook + install one-liner | **done** — scripts/claude-code-hook.sh + install-claude-hook.sh |
+| R4 | Unified knowledge git-style preview diff | **done** — plan_preview + preview.diff on every extract |
 | 6 | Watch + CI validation | later (after R1–R5) |
 | 7 | Multi-source + skill evolution | later |
 

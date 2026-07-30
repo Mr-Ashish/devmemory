@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import difflib
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from devmemory.paths import list_repo_dirs, resolve_unit_path
@@ -38,6 +39,91 @@ class ApplyChange:
     bytes_written: int
     applied: bool = True  # False when planned (dry-run), True after write
     unit_path: str | None = None  # resolved module path for the unit
+
+
+@dataclass
+class FileDiff:
+    """One knowledge file's before/after for git-style preview (R4)."""
+
+    path: Path
+    rel_path: str
+    old_text: str
+    new_text: str
+    is_new: bool = False
+
+    def unified(self, *, context: int = 3) -> str:
+        """Unified diff with a/ b/ prefixes (git-style)."""
+        old = self.old_text.splitlines(keepends=True)
+        new = self.new_text.splitlines(keepends=True)
+        # Normalize trailing newline for stable diffs
+        if old and not old[-1].endswith("\n"):
+            old[-1] = old[-1] + "\n"
+        if new and not new[-1].endswith("\n"):
+            new[-1] = new[-1] + "\n"
+        from_label = "/dev/null" if self.is_new else f"a/{self.rel_path}"
+        to_label = f"b/{self.rel_path}"
+        lines = list(
+            difflib.unified_diff(
+                old,
+                new,
+                fromfile=from_label,
+                tofile=to_label,
+                n=context,
+            )
+        )
+        if not lines:
+            return ""
+        # git-style file headers when creating a new file
+        if self.is_new and lines:
+            header = [
+                f"diff --git a/{self.rel_path} b/{self.rel_path}\n",
+                "new file mode 100644\n",
+            ]
+            return "".join(header + lines)
+        return f"diff --git a/{self.rel_path} b/{self.rel_path}\n" + "".join(lines)
+
+    def stats(self) -> tuple[int, int]:
+        """Return (lines_added, lines_removed) from the unified hunk body."""
+        added = removed = 0
+        for ln in self.unified().splitlines():
+            if ln.startswith("+++") or ln.startswith("---") or ln.startswith("@@"):
+                continue
+            if ln.startswith("diff ") or ln.startswith("new file"):
+                continue
+            if ln.startswith("+"):
+                added += 1
+            elif ln.startswith("-"):
+                removed += 1
+        return added, removed
+
+
+@dataclass
+class PreviewPlan:
+    """Sequential dry-run plan with unified knowledge diffs (R4)."""
+
+    changes: list[ApplyChange] = field(default_factory=list)
+    files: list[FileDiff] = field(default_factory=list)
+
+    def unified_text(self) -> str:
+        parts = [fd.unified() for fd in self.files]
+        parts = [p for p in parts if p.strip()]
+        if not parts:
+            return ""
+        return "\n".join(parts).rstrip() + "\n"
+
+    def stats(self) -> dict[str, int]:
+        files = len(self.files)
+        added = removed = 0
+        for fd in self.files:
+            a, r = fd.stats()
+            added += a
+            removed += r
+        return {
+            "files": files,
+            "lines_added": added,
+            "lines_removed": removed,
+            "changes": len(self.changes),
+        }
 
 
 def knowledge_filename(kind: str) -> str:
@@ -257,12 +343,16 @@ def _compute_unit_text(
     unit: KnowledgeUnit,
     *,
     existing_dirs: list[str] | None = None,
+    existing_override: str | None = None,
 ) -> tuple[KnowledgeUnit, Path, str, str, str] | None:
     """Plan one unit write.
 
     Returns (prepared_unit, target_path, existing_text, new_text, action)
     or None when the unit is a no-op / out of bounds.
     Does not touch the filesystem (except reading existing files).
+
+    When ``existing_override`` is set, merge against that in-memory body
+    (sequential multi-unit preview) instead of re-reading disk.
     """
     dirs = existing_dirs if existing_dirs is not None else list_repo_dirs(repo_root)
     unit = prepare_unit(repo_root, unit, existing_dirs=dirs)
@@ -278,7 +368,10 @@ def _compute_unit_text(
     if not path.parent.exists() and path.parent != repo_root.resolve():
         return None
 
-    existing = _read_or_template(path, unit.kind)
+    if existing_override is not None:
+        existing = existing_override
+    else:
+        existing = _read_or_template(path, unit.kind)
     if unit.action == "replace_section" and unit.section:
         new_text = _replace_section(existing, unit.section, unit.content)
         action = unit.action
@@ -287,7 +380,9 @@ def _compute_unit_text(
         action = unit.action
 
     new_text = strip_placeholders(new_text)
-    if new_text == strip_placeholders(existing) and path.exists():
+    # existing_override means we already have a simulated body (possibly template).
+    has_prior = path.exists() or existing_override is not None
+    if new_text == strip_placeholders(existing) and has_prior:
         if new_text == existing:
             return None
         # placeholders cleaned only
@@ -345,23 +440,120 @@ def apply_unit(
     )
 
 
+def plan_preview(
+    repo_root: Path,
+    result: ExtractionResult,
+    *,
+    min_confidence: set[str] | None = None,
+) -> PreviewPlan:
+    """Sequential dry-run: ApplyChange list + unified git-style diffs (R4).
+
+    Units are applied in memory in order so multi-unit merges into the same
+    DEV.md/USAGE.md produce one accurate file-level diff (not N independent
+    plans each against the original disk body).
+    """
+    allowed = min_confidence or {"high", "medium"}
+    dirs = list_repo_dirs(repo_root)
+    root = repo_root.resolve()
+
+    # path -> original disk body (empty string if file does not exist yet)
+    originals: dict[Path, str] = {}
+    # path -> current simulated body
+    virtual: dict[Path, str] = {}
+    # path -> last unit kind (for template)
+    kinds: dict[Path, str] = {}
+    changes: list[ApplyChange] = []
+
+    for unit in result.units:
+        if unit.confidence not in allowed:
+            continue
+        prepared = prepare_unit(repo_root, unit, existing_dirs=dirs)
+        path = target_file(repo_root, prepared, existing_dirs=dirs)
+        try:
+            path.relative_to(root)
+        except ValueError:
+            continue
+        if not path.parent.exists() and path.parent != root:
+            continue
+
+        if path not in originals:
+            if path.exists():
+                originals[path] = path.read_text(encoding="utf-8", errors="replace")
+            else:
+                originals[path] = ""  # true empty for new-file diff
+            # Start virtual from disk or template
+            virtual[path] = (
+                originals[path]
+                if originals[path]
+                else (DEV_TEMPLATE if prepared.kind == "dev" else USAGE_TEMPLATE)
+            )
+            kinds[path] = prepared.kind
+
+        computed = _compute_unit_text(
+            repo_root,
+            unit,
+            existing_dirs=dirs,
+            existing_override=virtual[path],
+        )
+        if computed is None:
+            continue
+        prep, tpath, _existing, new_text, action = computed
+        final = new_text if new_text.endswith("\n") else new_text + "\n"
+        virtual[tpath] = final
+        kinds[tpath] = prep.kind
+        changes.append(
+            ApplyChange(
+                path=tpath,
+                kind=prep.kind,
+                action=action,
+                section=prep.section,
+                bytes_written=len(final.encode("utf-8")),
+                applied=False,
+                unit_path=prep.path,
+            )
+        )
+
+    files: list[FileDiff] = []
+    for path, new_body in sorted(virtual.items(), key=lambda kv: str(kv[0])):
+        old_body = originals.get(path, "")
+        # Compare against what was on disk (empty if new); normalize trailing nl
+        old_cmp = old_body if old_body.endswith("\n") or old_body == "" else old_body + "\n"
+        new_cmp = new_body if new_body.endswith("\n") else new_body + "\n"
+        # If file did not exist, old for diff is empty (new file), not the template
+        is_new = not path.exists() and originals.get(path, "") == ""
+        if is_new:
+            old_cmp = ""
+        if old_cmp == new_cmp:
+            continue
+        try:
+            rel = str(path.relative_to(root))
+        except ValueError:
+            rel = str(path)
+        files.append(
+            FileDiff(
+                path=path,
+                rel_path=rel,
+                old_text=old_cmp,
+                new_text=new_cmp,
+                is_new=is_new,
+            )
+        )
+
+    return PreviewPlan(changes=changes, files=files)
+
+
 def plan_result(
     repo_root: Path,
     result: ExtractionResult,
     *,
     min_confidence: set[str] | None = None,
 ) -> list[ApplyChange]:
-    """Dry-run all units: proposed knowledge file paths without writing."""
-    allowed = min_confidence or {"high", "medium"}
-    dirs = list_repo_dirs(repo_root)
-    changes: list[ApplyChange] = []
-    for unit in result.units:
-        if unit.confidence not in allowed:
-            continue
-        ch = plan_unit(repo_root, unit, existing_dirs=dirs)
-        if ch:
-            changes.append(ch)
-    return changes
+    """Dry-run all units: proposed knowledge file paths without writing.
+
+    Uses sequential in-memory preview (same as plan_preview) so multi-unit
+    merges match what --apply would write.
+    """
+    return plan_preview(repo_root, result, min_confidence=min_confidence).changes
 
 
 def apply_result(

@@ -78,8 +78,15 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 **Result:** 9 hook tests green (44 total); install is idempotent; Stop ignored by default.  
 **Keep.** Prefer SessionEnd over Stop; leave R8 watch for multi-session polling.
 
+## 2026-07-31 · R4 unified knowledge preview diff
+
+**Hypothesis:** Path lists alone are weak for human gate; AI-native builders need a git-style unified diff of DEV/USAGE before `--apply`.  
+**Method:** sequential in-memory `plan_preview` (multi-unit same file), `difflib.unified_diff` with `diff --git` headers, `preview.diff`/`preview.json` artifacts, CLI colorized print.  
+**Result:** 7 preview tests green (51 total); dry-run preview matches post-apply content.  
+**Keep.**
+
 ## ROI ideas (persona jobs: session→discover→extract→apply→reuse)
 
-1. **R4 preview diff** — unified git-style knowledge diff in dry-run before `--apply` (highest next ROI).
-2. **R5 doctor** — one command for hermes/OpenRouter/sessions/model readiness.
-3. **Hook apply gate** — optional prompt-hook that only suggests extract when session had tool edits (lower thrash than Stop).
+1. **R5 doctor** — one command for hermes/OpenRouter/sessions/model readiness (highest next ROI).
+2. **R6 anti-restate** — compact knowledge index so re-runs add nothing when stable.
+3. **Hook apply gate** — only suggest extract when session had tool edits (lower thrash than Stop).

@@ -12,7 +12,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
-from devmemory.apply import ApplyChange, apply_result, plan_result
+from devmemory.apply import ApplyChange, PreviewPlan, apply_result, plan_preview
 from devmemory.assemble import assemble
 from devmemory.normalize import normalize_extraction, write_units
 from devmemory.paths import infer_paths_from_text, list_repo_dirs
@@ -41,6 +41,7 @@ class ExtractOutcome:
     model: str
     timings: dict | None = None
     showcase_dir: Path | None = None
+    preview: PreviewPlan | None = None
 
 
 def package_root() -> Path:
@@ -402,13 +403,38 @@ def extract_session(
         encoding="utf-8",
     )
 
-    # Always plan proposed knowledge paths; write only when --apply.
+    # Always build sequential preview (unified diffs); write only when --apply.
     t_p = time.perf_counter()
+    preview = plan_preview(repo_root, result)
     if apply:
         changes = apply_result(repo_root, result)
     else:
-        changes = plan_result(repo_root, result)
+        changes = preview.changes
     timings["apply_s"] = round(time.perf_counter() - t_p, 3)
+
+    # Git-style unified knowledge diff (R4) — before/after apply for review.
+    diff_text = preview.unified_text()
+    (ctx.run_dir / "preview.diff").write_text(diff_text, encoding="utf-8")
+    (ctx.run_dir / "preview.json").write_text(
+        json.dumps(
+            {
+                "stats": preview.stats(),
+                "files": [
+                    {
+                        "path": fd.rel_path,
+                        "is_new": fd.is_new,
+                        "lines_added": fd.stats()[0],
+                        "lines_removed": fd.stats()[1],
+                    }
+                    for fd in preview.files
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
     (ctx.run_dir / ("apply.json" if apply else "plan.json")).write_text(
         json.dumps(
             [
@@ -476,4 +502,5 @@ def extract_session(
         model=model,
         timings=timings,
         showcase_dir=showcase_dir,
+        preview=preview,
     )

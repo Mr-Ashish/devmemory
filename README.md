@@ -210,8 +210,9 @@ open assets/devmemory-core.html   # or: python -m http.server 8765
 ### Extract flags
 
 ```bash
-# dry-run (default): units + proposed knowledge paths, no writes
+# dry-run (default): units + proposed paths + unified knowledge diff, no writes
 devmemory extract --fixture dogfood-build-narrative --offline --force
+# → prints colorized diff; writes .devmemory/out/<run>/preview.diff
 
 # write DEV.md/USAGE.md + mark session processed
 devmemory extract --fixture dogfood-build-narrative --apply --force \
@@ -221,6 +222,8 @@ devmemory extract --session <id> --apply
 devmemory extract --text-file ./notes.md --apply --force
 devmemory extract --offline --apply          # heuristic, no Hermes
 ```
+
+Dry-run preview is a **git-style unified diff** of every DEV.md/USAGE.md that would change (sequential multi-unit merge). Review `preview.diff`, then re-run with `--apply`.
 
 ### Claude Code hook (one-liner)
 

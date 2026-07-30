@@ -285,7 +285,7 @@ def extract_cmd(
         console.print(
             f"  - [{u.confidence}] {u.kind} path={u.path!r} section={u.section!r}"
         )
-    # Dry-run (default): show proposed knowledge files; --apply writes them.
+    # Dry-run (default): show proposed knowledge files + unified diff; --apply writes.
     mode = "applied" if apply else "proposed"
     color = "green" if apply else "cyan"
     console.print(
@@ -304,6 +304,32 @@ def extract_cmd(
             + (f" unit_path={unit_p!r}" if unit_p else "")
             + ")"
         )
+    # R4: git-style unified knowledge preview
+    preview = outcome.preview
+    diff_stats: dict | None = None
+    if preview is not None:
+        diff_stats = preview.stats()
+        console.print(
+            f"[bold]preview[/bold] {diff_stats['files']} file(s) "
+            f"+{diff_stats['lines_added']}/-{diff_stats['lines_removed']} "
+            f"→ {outcome.run_dir / 'preview.diff'}"
+        )
+        diff_text = preview.unified_text()
+        if diff_text.strip():
+            # Print unified diff to stderr via rich (human gate); keep stdout JSON clean.
+            console.print("[dim]── knowledge diff (unified) ──[/dim]")
+            for line in diff_text.splitlines():
+                if line.startswith("+") and not line.startswith("+++"):
+                    console.print(f"[green]{line}[/green]")
+                elif line.startswith("-") and not line.startswith("---"):
+                    console.print(f"[red]{line}[/red]")
+                elif line.startswith("@@"):
+                    console.print(f"[cyan]{line}[/cyan]")
+                else:
+                    console.print(line)
+            console.print("[dim]── end preview ──[/dim]")
+        elif not apply:
+            console.print("[dim]preview: no knowledge file changes[/dim]")
     if outcome.showcase_dir:
         console.print(f"[green]showcase[/green] {outcome.showcase_dir}")
     # machine-readable last line for scripts
@@ -328,6 +354,13 @@ def extract_cmd(
                     }
                     for c in outcome.changes
                 ],
+                "preview": {
+                    "stats": diff_stats,
+                    "diff_path": str(outcome.run_dir / "preview.diff"),
+                    "files": (
+                        [fd.rel_path for fd in preview.files] if preview else []
+                    ),
+                },
                 "model": outcome.model,
                 "hermes_rc": outcome.hermes_rc,
                 "timings": outcome.timings,

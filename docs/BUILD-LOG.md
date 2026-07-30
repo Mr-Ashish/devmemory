@@ -84,3 +84,12 @@ change code
 - Docs: README + USAGE one-liner and env table
 - Live Opus showcase `dogfood-run-20260731T025126-b52ea6` hermes_rc=0 units=4 · eval 4.8/5
 - **Backlog:** R3 done → next **R4** (preview as unified knowledge git-style diff before apply)
+
+## 2026-07-31 · R4 unified knowledge preview diff
+
+- `apply.plan_preview` / `FileDiff` / `PreviewPlan`: sequential in-memory merge → one git-style unified diff per knowledge file
+- Artifacts: `preview.diff` + `preview.json` (stats) on every extract; dry-run CLI prints colorized unified diff
+- Machine JSON: `preview.stats` + `preview.diff_path` + `preview.files`
+- `plan_result` now uses sequential preview (matches multi-unit `--apply`)
+- Tests: `tests/test_preview_diff.py` (7) → 51 total
+- **Backlog:** R4 done → next **R5** (devmemory doctor)

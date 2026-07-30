@@ -11,7 +11,8 @@
 
 ## Common commands
 
-- Dry-run extract (units + proposed paths): `devmemory extract --fixture sample-auth-module`
+- Dry-run extract (units + proposed paths + unified `preview.diff`): `devmemory extract --fixture sample-auth-module`
+- Review knowledge diff: open `.devmemory/out/<run>/preview.diff` or read the colorized CLI print
 - Write knowledge: `devmemory extract --fixture sample-auth-module --apply`
 - Real Claude session: `devmemory extract --session <id> --apply` (default without flags prefers latest unprocessed Claude session for cwd)
 - Offline heuristic: `devmemory extract --offline --apply --force`
