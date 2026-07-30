@@ -1,0 +1,82 @@
+{
+  "units": [
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Architecture",
+      "content": "- Module layout: `cli.py` (Click CLI), `assemble.py` (bounded context, no LLM), `extract.py` (Hermes orchestration + timings + showcase flag), `normalize.py` (JSON units + post-parse redaction), `apply.py` (merge into DEV.md/USAGE.md), `paths.py` (`list_repo_dirs` + `resolve_unit_path`), `sections.py` (canonicalize section titles), `trace.py` (redacted showcase packaging), `sources/` (fixtures + Claude history/project).\n- `agent/` holds SOUL.md, config.yaml and extract-prompt.md used to seed the Hermes home before a live run.\n- Runtime state is written under `.devmemory/` (gitignored); curated, redacted public traces are written under `docs/showcase/`.\n- Control plane mirrors the Luffy PR-review agent shape: assemble → `hermes -z` → normalize → apply → human git review.\n- `extract_session` records per-stage timings (assemble/extract/normalize/apply/total) into `timings.json` in the run dir and surfaces them on `ExtractOutcome`.",
+      "evidence": [
+        "src/devmemory/paths.py — list_repo_dirs + resolve_unit_path",
+        "Runtime state lives under .devmemory/ (gitignored). Curated public traces live under docs/showcase/ after redaction."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Design decisions",
+      "content": "- The apply layer is the product quality boundary: path snapping to existing dirs, canonical H2 sections, bullet near-dupe skip, placeholder scrub. The LLM proposes; merge decides.\n- Default extraction model is `anthropic/claude-opus-5` (dogfood quality); `openai/gpt-4.1-mini` is acceptable for cheap iteration. Resolution order is `--model` → `DEVMEMORY_MODEL` → default.\n- Hermes toolsets are empty by default for extract so the run is pure reasoning over the assembled context; set `DEVMEMORY_TOOLSETS=terminal` only when a run genuinely needs shell access.\n- Showcase packaging is opt-in via `--showcase` / `--showcase-dir`; `trace.py` redacts before writing, so only sanitized traces reach `docs/showcase/`.\n- `hermes-agent-self-evolution` is an idea source only (session importers, secret-redaction patterns, later skill GEPA) and is not part of the MVP runtime.\n- Live runs export `HERMES_TUI_TOOL_PROGRESS=verbose` so dogfood traces capture agent tool progress.",
+      "evidence": [
+        "Apply layer is the product quality boundary: path snap to existing dirs, canonical H2 sections, bullet near-dupe skip, placeholder scrub. LLM proposes; merge decides.",
+        "Default Hermes toolsets are empty for extract (pure reasoning over assembled context). Override DEVMEMORY_TOOLSETS=terminal only when needed."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Patterns",
+      "content": "- Schemas are frozen pydantic models: `KnowledgeUnit` / `ExtractionResult` in `schema.py`.\n- A session is only marked processed when `units > 0`, so empty or failed runs never poison the cursor.\n- An offline heuristic extract (path inference + command-line regex) keeps CI green without an OpenRouter key; it also acts as a fallback when a live run returns no parseable units.\n- Dogfood loop: improve the product → run extract on this repo → update DEV/USAGE → capture a showcase package → push.",
+      "evidence": [
+        "Frozen schemas via pydantic KnowledgeUnit / ExtractionResult.",
+        "Only mark sessions processed when units > 0 (do not poison cursor on empty runs)."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Pitfalls",
+      "content": "- Redacting secrets before parsing breaks JSON — run redaction on string fields *after* the JSON parse in `normalize.py`.\n- Without bullet near-dupe skipping, re-running extract thrashes DEV.md/USAGE.md with restated content.\n- LLM-invented paths create junk doc trees — always snap a unit's path onto an existing directory (or `.`).\n- Enabling terminal tools during extract slows the run and distracts the model from the JSON output contract.\n- Never commit `.env` alongside `.devmemory/` and raw transcripts.",
+      "evidence": [
+        "Pre-parse secret redaction can break JSON — redact string fields after parse.",
+        "Invented paths create junk trees — always snap to existing directories."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "usage",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Common commands",
+      "content": "- Live dogfood extract with showcase: `devmemory extract --fixture dogfood-build-narrative --apply --force --showcase` (add `--showcase-dir <path>` for a custom output dir).\n- `--force` re-processes a session that is already recorded in the cursor.\n- Point env loading at an external file and pin the model before a live run: `export DEVMEMORY_ENV_FILE=<path to .env>` and `export DEVMEMORY_MODEL=anthropic/claude-opus-5`.\n- End-to-end smoke: `./scripts/smoke-e2e.sh`; Hermes-only connectivity check: `./scripts/smoke-hermes.sh`.\n- `devmemory review` shows the pending doc changes for human git review.\n- The last line of `devmemory extract` stdout is machine-readable JSON including `units`, `changes`, `model`, `hermes_rc`, `timings` and `showcase`.",
+      "evidence": [
+        "devmemory extract --fixture dogfood-build-narrative --apply --force --showcase",
+        "# machine-readable last line for scripts"
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "usage",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Debugging",
+      "content": "- `hermes_rc != 0`: inspect `extract.raw.stderr` in the run dir, and confirm the seeded `HERMES_HOME/.env` is mode 0600 and contains `OPENROUTER_API_KEY`.\n- Zero units: read `extract.raw.md` for non-JSON output; the offline heuristic fallback should still produce units.\n- Wrong unit path: confirm the directory appears in `EXISTING_DIRS` of the assembled prompt and that the tree sample includes the module dir.\n- Per-stage `timings.json` in the run dir shows which phase is slow (assemble vs extract vs normalize vs apply).\n- Showcase privacy check: `trace.py` strips `sk-or` keys, `Bearer` tokens and env assignments before anything lands in `docs/showcase/`.\n- Test coverage targets ≥19 unit tests spanning redaction, normalize, apply dedupe, path snap and offline extract.",
+      "evidence": [
+        "If hermes_rc != 0: check extract.raw.stderr and HERMES_HOME/.env mode 0600 + OPENROUTER_API_KEY.",
+        "Showcase privacy: trace.py redacts sk-or / Bearer / env assignments before writing docs/showcase/."
+      ],
+      "confidence": "high"
+    }
+  ],
+  "summary": "The dogfood build session yields durable knowledge about devmemory's control-plane design (apply layer as quality boundary, empty toolsets for extract, showcase/redaction flow), the module layout of src/devmemory, new pitfalls around redaction ordering and cursor poisoning, plus concrete operational commands and debug procedures for live Hermes extraction and showcase packaging.",
+  "session_ids": [
+    "dogfood-build-narrative"
+  ],
+  "model": "anthropic/claude-opus-5",
+  "raw_path": "/Users/ashishmishra/Documents/experimentation/devmemory/.devmemory/out/run-20260731T021737-6f9c71/extract.raw.md"
+}

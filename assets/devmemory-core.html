@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>devmemory · living repo memory</title>
+  <style>
+    :root {
+      --bg: #070b14;
+      --fg: #e8eefc;
+      --accent: #ff6b2c;
+      --accent2: #c41e3a;
+      --glow: #5b8cff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%;
+      background: radial-gradient(1200px 800px at 50% 20%, #121a2e 0%, var(--bg) 55%);
+      color: var(--fg);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+    #c { display: block; width: 100%; height: 100%; }
+    .hud {
+      position: fixed; inset: 0; pointer-events: none;
+      display: flex; flex-direction: column; justify-content: space-between;
+      padding: 28px 32px;
+    }
+    .brand {
+      display: flex; flex-direction: column; gap: 6px;
+      text-shadow: 0 2px 24px rgba(0,0,0,.55);
+    }
+    .brand h1 {
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      letter-spacing: 0.04em;
+      font-weight: 700;
+    }
+    .brand h1 span { color: var(--accent); }
+    .brand p {
+      max-width: 42ch;
+      opacity: 0.82;
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .badge {
+      pointer-events: auto;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(10,14,24,.55);
+      backdrop-filter: blur(8px);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .badge strong { color: var(--accent); font-weight: 700; }
+    .footer {
+      display: flex; justify-content: space-between; align-items: flex-end; gap: 16px;
+      font-size: 0.78rem; opacity: 0.75;
+    }
+    .footer code {
+      color: #9ec1ff;
+      background: rgba(91,140,255,.12);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    a { color: #9ec1ff; text-decoration: none; pointer-events: auto; }
+    a:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div class="hud">
+    <div class="brand">
+      <h1>dev<span>memory</span></h1>
+      <p>Continuous knowledge extraction for AI-native repos. Sessions become colocated <strong>DEV.md</strong> / <strong>USAGE.md</strong> — reviewed in git, not lost in chat.</p>
+      <div class="badge-row">
+        <div class="badge"><strong>Hermes</strong> agent runtime</div>
+        <div class="badge"><strong>OpenRouter</strong> · Opus 5</div>
+        <div class="badge"><strong>local</strong> · private transcripts</div>
+        <div class="badge"><strong>dogfood</strong> · self-improving docs</div>
+      </div>
+    </div>
+    <div class="footer">
+      <div>Drag to orbit · scroll to zoom · living memory graph</div>
+      <div><a href="../README.md">README</a> · <code>devmemory extract --showcase</code></div>
+    </div>
+  </div>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const canvas = document.getElementById('c');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0.8, 1.1, 3.2);
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.enableDamping = true;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.55;
+    controls.minDistance = 1.6;
+    controls.maxDistance = 7;
+
+    scene.add(new THREE.AmbientLight(0x6a7fff, 0.55));
+    const key = new THREE.DirectionalLight(0xff8a4c, 1.15);
+    key.position.set(3, 4, 2);
+    scene.add(key);
+    const rim = new THREE.PointLight(0x5b8cff, 1.4, 12);
+    rim.position.set(-2.5, -0.5, 2);
+    scene.add(rim);
+
+    // Core memory nucleus
+    const coreGeo = new THREE.IcosahedronGeometry(0.55, 2);
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: 0xff6b2c,
+      emissive: 0xc41e3a,
+      emissiveIntensity: 0.45,
+      metalness: 0.55,
+      roughness: 0.25,
+      flatShading: true,
+    });
+    const core = new THREE.Mesh(coreGeo, coreMat);
+    scene.add(core);
+
+    // Wire shell
+    const shell = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.82, 1),
+      new THREE.MeshBasicMaterial({ color: 0x5b8cff, wireframe: true, transparent: true, opacity: 0.35 })
+    );
+    scene.add(shell);
+
+    // Orbiting knowledge nodes (DEV / USAGE / session / apply)
+    const labels = ['DEV', 'USAGE', 'SESSION', 'APPLY', 'GIT', 'HERMES'];
+    const nodes = new THREE.Group();
+    const nodeMat = [
+      0xff6b2c, 0x5b8cff, 0xffd166, 0x2ea44f, 0xc41e3a, 0x9b7bff
+    ].map(c => new THREE.MeshStandardMaterial({
+      color: c, emissive: c, emissiveIntensity: 0.25, metalness: 0.3, roughness: 0.4
+    }));
+    labels.forEach((_, i) => {
+      const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.09, 0), nodeMat[i % nodeMat.length]);
+      const phi = (i / labels.length) * Math.PI * 2;
+      m.userData = { phi, r: 1.35 + (i % 2) * 0.18, speed: 0.35 + i * 0.04 };
+      nodes.add(m);
+    });
+    scene.add(nodes);
+
+    // Links from core to nodes
+    const linkMat = new THREE.LineBasicMaterial({ color: 0x5b8cff, transparent: true, opacity: 0.35 });
+    const links = [];
+    nodes.children.forEach((n) => {
+      const geo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        n.position.clone(),
+      ]);
+      const line = new THREE.Line(geo, linkMat);
+      links.push({ line, node: n });
+      scene.add(line);
+    });
+
+    // Floating particles (session residue → knowledge)
+    const N = 240;
+    const positions = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) {
+      const r = 1.1 + Math.random() * 2.2;
+      const th = Math.random() * Math.PI * 2;
+      const ph = Math.acos(2 * Math.random() - 1);
+      positions[i * 3] = r * Math.sin(ph) * Math.cos(th);
+      positions[i * 3 + 1] = r * Math.sin(ph) * Math.sin(th);
+      positions[i * 3 + 2] = r * Math.cos(ph);
+    }
+    const pGeo = new THREE.BufferGeometry();
+    pGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const points = new THREE.Points(
+      pGeo,
+      new THREE.PointsMaterial({ color: 0x9ec1ff, size: 0.018, transparent: true, opacity: 0.7 })
+    );
+    scene.add(points);
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    window.addEventListener('resize', onResize);
+
+    const clock = new THREE.Clock();
+    function tick() {
+      const t = clock.getElapsedTime();
+      core.rotation.y = t * 0.35;
+      core.rotation.x = Math.sin(t * 0.4) * 0.15;
+      shell.rotation.y = -t * 0.2;
+      shell.rotation.z = t * 0.08;
+      points.rotation.y = t * 0.05;
+
+      nodes.children.forEach((n) => {
+        const { phi, r, speed } = n.userData;
+        const a = phi + t * speed;
+        n.position.set(Math.cos(a) * r, Math.sin(t * 0.7 + phi) * 0.25, Math.sin(a) * r);
+        n.rotation.x = t;
+        n.rotation.y = t * 1.3;
+      });
+      links.forEach(({ line, node }) => {
+        const pos = line.geometry.attributes.position;
+        pos.setXYZ(1, node.position.x, node.position.y, node.position.z);
+        pos.needsUpdate = true;
+      });
+
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+    tick();
+  </script>
+</body>
+</html>

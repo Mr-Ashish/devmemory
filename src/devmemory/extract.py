@@ -19,6 +19,7 @@ from devmemory.paths import infer_paths_from_text, list_repo_dirs
 from devmemory.schema import ExtractionResult
 from devmemory.sources.base import SessionRecord
 from devmemory.state import DevMemoryPaths, RunContext, utc_now
+from devmemory.trace import package_showcase
 
 _CMD_LINE = re.compile(
     r"(?m)^\s*(?:[-*]\s*)?(?:`)?((?:pytest|pip|uv|npm|pnpm|yarn|cargo|go|make|docker|"
@@ -38,6 +39,8 @@ class ExtractOutcome:
     changes: list[ApplyChange]
     hermes_rc: int
     model: str
+    timings: dict | None = None
+    showcase_dir: Path | None = None
 
 
 def package_root() -> Path:
@@ -150,6 +153,8 @@ def run_hermes_extract(
     env["HERMES_HOME"] = str(hermes_home)
     env["OPENROUTER_API_KEY"] = ensure_openrouter_key()
     env["PYTHONUNBUFFERED"] = "1"
+    # Verbose agent logging for dogfood traces
+    env["HERMES_TUI_TOOL_PROGRESS"] = env.get("HERMES_TUI_TOOL_PROGRESS", "verbose")
     path_extra = f"{Path.home() / '.local' / 'bin'}:{Path.home() / '.hermes' / 'bin'}"
     env["PATH"] = f"{path_extra}:{env.get('PATH', '')}"
 
@@ -316,6 +321,7 @@ def extract_session(
     model: str | None = None,
     skip_processed: bool = True,
     force: bool = False,
+    showcase: bool | Path | None = None,
 ) -> ExtractOutcome:
     paths = DevMemoryPaths.for_repo(repo_root)
     paths.ensure()
@@ -324,25 +330,41 @@ def extract_session(
             f"session {session.session_id} already processed (use --force to re-run)"
         )
 
+    t0 = time.perf_counter()
+    timings: dict[str, float] = {}
     run_id = f"run-{time.strftime('%Y%m%dT%H%M%S')}-{uuid.uuid4().hex[:6]}"
     ctx = RunContext(paths=paths, run_id=run_id)
     pkg = package_root()
     prompt_template = load_prompt_template(pkg)
-    prompt_path = assemble(ctx, session, prompt_template=prompt_template)
 
-    model = model or os.environ.get("DEVMEMORY_MODEL") or "openai/gpt-4.1-mini"
+    t_a = time.perf_counter()
+    prompt_path = assemble(ctx, session, prompt_template=prompt_template)
+    timings["assemble_s"] = round(time.perf_counter() - t_a, 3)
+
+    model = (
+        model
+        or os.environ.get("DEVMEMORY_MODEL")
+        or "anthropic/claude-opus-5"
+    )
     raw_path = ctx.run_dir / "extract.raw.md"
     usage_file = ctx.run_dir / "hermes-usage.json"
     units_path = ctx.run_dir / "units.json"
     hermes_rc = 0
+    log_offset = 0
 
     if offline or os.environ.get("DEVMEMORY_OFFLINE") == "1":
+        t_e = time.perf_counter()
         result = offline_extract(session, repo_root)
         raw_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
         hermes_rc = 0
         model = "offline"
+        timings["extract_s"] = round(time.perf_counter() - t_e, 3)
     else:
         seed_hermes_home(paths.hermes_home, pkg)
+        log_file = paths.hermes_home / "logs" / "agent.log"
+        if log_file.exists():
+            log_offset = log_file.stat().st_size
+        t_e = time.perf_counter()
         hermes_rc = run_hermes_extract(
             prompt_path=prompt_path,
             workspace=repo_root,
@@ -351,17 +373,20 @@ def extract_session(
             usage_file=usage_file,
             model=model,
         )
+        timings["extract_s"] = round(time.perf_counter() - t_e, 3)
         raw_text = (
             raw_path.read_text(encoding="utf-8", errors="replace")
             if raw_path.exists()
             else ""
         )
+        t_n = time.perf_counter()
         result = normalize_extraction(
             raw_text,
             session_ids=[session.session_id],
             model=model,
             raw_path=str(raw_path),
         )
+        timings["normalize_s"] = round(time.perf_counter() - t_n, 3)
         # Fallback only when Hermes hard-failed or returned unparseable empty
         if not result.units:
             result = offline_extract(session, repo_root)
@@ -372,13 +397,16 @@ def extract_session(
         f"# Run {run_id}\n\n- session: `{session.session_id}`\n"
         f"- model: `{model}`\n- hermes_rc: {hermes_rc}\n"
         f"- units: {len(result.units)}\n- summary: {result.summary}\n"
-        f"- at: {utc_now()}\n",
+        f"- at: {utc_now()}\n"
+        f"- timings: {json.dumps(timings)}\n",
         encoding="utf-8",
     )
 
     changes: list[ApplyChange] = []
     if apply:
+        t_p = time.perf_counter()
         changes = apply_result(repo_root, result)
+        timings["apply_s"] = round(time.perf_counter() - t_p, 3)
         (ctx.run_dir / "apply.json").write_text(
             json.dumps(
                 [
@@ -397,6 +425,11 @@ def extract_session(
             encoding="utf-8",
         )
 
+    timings["total_s"] = round(time.perf_counter() - t0, 3)
+    (ctx.run_dir / "timings.json").write_text(
+        json.dumps(timings, indent=2) + "\n", encoding="utf-8"
+    )
+
     # Only mark processed when we extracted something durable (avoid poisoning the cursor)
     if result.units:
         paths.mark_processed(
@@ -406,6 +439,29 @@ def extract_session(
             summary=result.summary,
         )
 
+    showcase_dir: Path | None = None
+    if showcase:
+        if showcase is True:
+            showcase_dir = (
+                package_root()
+                / "docs"
+                / "showcase"
+                / f"dogfood-{run_id}"
+            )
+        else:
+            showcase_dir = Path(showcase)
+        package_showcase(
+            ctx.run_dir,
+            showcase_dir,
+            hermes_home=paths.hermes_home,
+            log_offset=log_offset,
+            model=model,
+            hermes_rc=hermes_rc,
+            units=len(result.units),
+            summary=result.summary,
+            timings=timings,
+        )
+
     return ExtractOutcome(
         run_id=run_id,
         run_dir=ctx.run_dir,
@@ -413,4 +469,6 @@ def extract_session(
         changes=changes,
         hermes_rc=hermes_rc,
         model=model,
+        timings=timings,
+        showcase_dir=showcase_dir,
     )

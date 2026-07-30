@@ -33,4 +33,5 @@ if [[ -z "${OPENROUTER_API_KEY:-}" ]]; then
 fi
 
 export OPENROUTER_BASE_URL="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
+# Smoke scripts keep a cheap default; export DEVMEMORY_MODEL=anthropic/claude-opus-5 for dogfood.
 export DEVMEMORY_MODEL="${DEVMEMORY_MODEL:-openai/gpt-4.1-mini}"

@@ -191,7 +191,18 @@ def status_cmd(repo: str | None) -> None:
 @click.option("--apply/--no-apply", default=False, help="Write DEV.md/USAGE.md")
 @click.option("--offline/--live", default=False, help="Heuristic extract without Hermes")
 @click.option("--force", is_flag=True, help="Re-process already processed session")
-@click.option("--model", default=None, help="OpenRouter model id")
+@click.option("--model", default=None, help="OpenRouter model id (default: opus-5)")
+@click.option(
+    "--showcase/--no-showcase",
+    default=False,
+    help="Write redacted docs/showcase package for README",
+)
+@click.option(
+    "--showcase-dir",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Custom showcase output directory",
+)
 def extract_cmd(
     repo: str | None,
     session_id: str | None,
@@ -201,6 +212,8 @@ def extract_cmd(
     offline: bool,
     force: bool,
     model: str | None,
+    showcase: bool,
+    showcase_dir: Path | None,
 ) -> None:
     """Extract durable knowledge from a session."""
     root = _repo_path(repo)
@@ -211,6 +224,11 @@ def extract_cmd(
         f"[bold]extract[/bold] session={session.session_id} source={session.source} "
         f"apply={apply} offline={offline}"
     )
+    show: bool | Path | None = False
+    if showcase_dir is not None:
+        show = showcase_dir
+    elif showcase:
+        show = True
     try:
         outcome = extract_session(
             root,
@@ -219,6 +237,7 @@ def extract_cmd(
             offline=offline,
             model=model,
             force=force,
+            showcase=show,
         )
     except RuntimeError as e:
         raise click.ClickException(str(e)) from e
@@ -228,6 +247,8 @@ def extract_cmd(
     console.print(f"  model: {outcome.model} hermes_rc={outcome.hermes_rc}")
     console.print(f"  units: {len(outcome.result.units)}")
     console.print(f"  summary: {outcome.result.summary or '(none)'}")
+    if outcome.timings:
+        console.print(f"  timings: {outcome.timings}")
     for u in outcome.result.units:
         console.print(
             f"  - [{u.confidence}] {u.kind} path={u.path!r} section={u.section!r}"
@@ -240,6 +261,8 @@ def extract_cmd(
             except ValueError:
                 rel = c.path
             console.print(f"  - {rel} ({c.kind}/{c.action})")
+    if outcome.showcase_dir:
+        console.print(f"[green]showcase[/green] {outcome.showcase_dir}")
     # machine-readable last line for scripts
     print(
         json.dumps(
@@ -250,6 +273,8 @@ def extract_cmd(
                 "changes": len(outcome.changes),
                 "model": outcome.model,
                 "hermes_rc": outcome.hermes_rc,
+                "timings": outcome.timings,
+                "showcase": str(outcome.showcase_dir) if outcome.showcase_dir else None,
             }
         )
     )
