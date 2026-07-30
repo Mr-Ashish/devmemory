@@ -13,3 +13,4 @@ build/
 .luffy-out/
 .DS_Store
 *.log
+!docs/showcase/**/*.log
