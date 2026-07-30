@@ -239,3 +239,18 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 ### Decision
 
 **No build.** Reconfirmed R1–R8 solid; doctor ready_live; validate ok (1 P2 warn). Health dogfood only. Consecutive no-P0/P1 fires: **2/3**.
+
+## 2026-07-31 · fire · stability (no P0/P1) · 3/3 · DONE
+
+**Persona jobs:** fully covered by R1–R8 + tool-edit gate.
+
+### ROI rank (this fire)
+
+| Rank | Idea | Priority |
+|------|------|----------|
+| — | *(none)* | **no P0/P1** |
+| 1–4 | P2 polish only (USAGE H2, embeddings, init-hook, GEPA) | skip |
+
+### Decision
+
+**No build.** Third consecutive no-P0/P1 fire with eval ≥4.5 and clean push → **scheduler DONE**.

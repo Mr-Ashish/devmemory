@@ -157,3 +157,10 @@ change code
 - Live Opus narrative: hermes_rc=0, **units=0**, **0** writes (full anti-restate; no offline fallback)
 - Showcase `dogfood-run-20260731T034748-8d544b` · eval **5.0/5** · pytest 92
 - DONE counter: **2/3** consecutive no-P0/P1 fires
+
+## 2026-07-31 · stability fire 3/3 · DONE
+
+- Third consecutive **no P0/P1** fire; health dogfood only
+- Live Opus: hermes_rc=0, **units=0**, **0** writes · showcase `dogfood-run-20260731T035248-64c461` · eval **5.0/5**
+- pytest 92 green; validate ok; ready_live=yes
+- **DONE:** R1–R8 habit loop solid; scheduler task ended (only P2+ backlog remains)

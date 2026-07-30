@@ -1,0 +1,9 @@
+{
+  "units": [],
+  "summary": "The session is a consolidated restatement of the devmemory build narrative — architecture (Luffy-shaped control plane, Hermes CLI + OpenRouter, colocated DEV/USAGE, apply layer as quality boundary), module layout, pitfalls, commands, and debug tips are all already recorded in the claim index and existing DEV.md/USAGE.md excerpts at root, src/devmemory, and src/devmemory/sources. No new durable knowledge was found.",
+  "session_ids": [
+    "dogfood-build-narrative"
+  ],
+  "model": "anthropic/claude-opus-5",
+  "raw_path": "/Users/ashishmishra/Documents/experimentation/devmemory/.devmemory/out/run-20260731T035248-64c461/extract.raw.md"
+}
