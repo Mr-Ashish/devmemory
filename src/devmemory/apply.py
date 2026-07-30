@@ -15,30 +15,17 @@ from devmemory.sections import (
     strip_placeholders,
 )
 
+# Sections are created on first content — avoid empty H2 scaffolding.
 DEV_TEMPLATE = """# DEV — engineering knowledge
 
 > How this part of the system is built.
 
-## Architecture
-
-## Design decisions
-
-## Patterns
-
-## Pitfalls
 """
 
 USAGE_TEMPLATE = """# USAGE — operational knowledge
 
 > How to work with this part of the system.
 
-## Setup
-
-## Common commands
-
-## Debugging
-
-## Troubleshooting
 """
 
 

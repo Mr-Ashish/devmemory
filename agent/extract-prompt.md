@@ -27,6 +27,7 @@ Respond with **only** the JSON object (fence optional).
 ### Field rules
 - `kind`: `"dev"` (architecture/decisions/patterns/pitfalls) or `"usage"` (commands/setup/debug)
 - `path`: **must be one of the existing directories listed below** (or `"."`). Never invent paths.
+  Prefer code modules under `src/`. **Never** use `tests/`, `docs/`, `fixtures/`, `assets/`, or `scripts/` as knowledge homes.
 - `section`: **must** be one of:
   - DEV: `Architecture` | `Design decisions` | `Patterns` | `Pitfalls`
   - USAGE: `Setup` | `Common commands` | `Debugging` | `Troubleshooting`

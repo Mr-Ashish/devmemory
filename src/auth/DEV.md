@@ -2,8 +2,6 @@
 
 > How this part of the system is built.
 
-## Architecture
-
 ## Design decisions
 
 - Authentication middleware is located in `src/auth/`.

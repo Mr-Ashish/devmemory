@@ -1,0 +1,18 @@
+{
+  "estimated_cost_usd": 0.270435,
+  "cost_status": "estimated",
+  "cost_source": "provider_models_api",
+  "input_tokens": 2,
+  "output_tokens": 3212,
+  "cache_read_tokens": 0,
+  "cache_write_tokens": 30420,
+  "reasoning_tokens": 185,
+  "total_tokens": 33634,
+  "api_calls": 1,
+  "model": "anthropic/claude-opus-5",
+  "provider": "openrouter",
+  "session_id": "20260731_022303_0a87b8",
+  "completed": true,
+  "failed": false,
+  "service_tier": null
+}

@@ -8,6 +8,11 @@ from pathlib import Path
 
 _BLOCKED = frozenset({".git", ".devmemory", ".venv", "venv", "node_modules", "__pycache__"})
 
+# Never colocate product knowledge under these trees (tooling / meta / fixtures).
+_KNOWLEDGE_BLOCKED_PREFIXES = frozenset(
+    {"tests", "docs", "fixtures", "assets", "scripts", ".github", "node_modules"}
+)
+
 _PATH_IN_TEXT = re.compile(
     r"(?P<p>(?:src|lib|apps|packages|modules|addons|services|backend|frontend|"
     r"internal|cmd|pkg|app)(?:/[A-Za-z0-9_.\-]+){1,6}/?)"
@@ -45,13 +50,24 @@ def path_exists_dir(repo_root: Path, rel: str) -> bool:
     return p.is_dir()
 
 
+def is_knowledge_blocked(rel: str) -> bool:
+    """True if this relative path should not own DEV.md/USAGE.md."""
+    if rel in (".", "", None):
+        return False
+    top = rel.replace("\\", "/").strip("/").split("/")[0]
+    return top in _KNOWLEDGE_BLOCKED_PREFIXES
+
+
 def resolve_unit_path(
     repo_root: Path,
     path: str,
     *,
     existing_dirs: list[str] | None = None,
 ) -> str:
-    """Snap a unit path to an existing directory; never invent deep trees."""
+    """Snap a unit path to an existing directory; never invent deep trees.
+
+    Also refuses knowledge under tests/docs/fixtures/assets/scripts.
+    """
     raw = (path or ".").strip().replace("\\", "/")
     while raw.startswith("./"):
         raw = raw[2:]
@@ -59,6 +75,8 @@ def resolve_unit_path(
     if ".." in raw.split("/"):
         return "."
     if raw == ".":
+        return "."
+    if is_knowledge_blocked(raw):
         return "."
 
     dirs = existing_dirs if existing_dirs is not None else list_repo_dirs(repo_root)
@@ -70,12 +88,17 @@ def resolve_unit_path(
         parent = str(Path(candidate).parent).replace("\\", "/")
         candidate = "." if parent in (".", "") else parent
 
+    if is_knowledge_blocked(candidate):
+        return "."
+
     if candidate in dir_set or path_exists_dir(repo_root, candidate):
         return candidate
 
     parts = candidate.split("/")
     for i in range(len(parts), 0, -1):
         prefix = "/".join(parts[:i])
+        if is_knowledge_blocked(prefix):
+            return "."
         if prefix in dir_set or path_exists_dir(repo_root, prefix):
             return prefix
     return "."

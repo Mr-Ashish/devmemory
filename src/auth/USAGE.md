@@ -14,5 +14,3 @@
 ## Debugging
 
 - If receiving a 401 on a valid token, check for clock skew and verify that the `AUTH_SECRET` matches the issuer.
-
-## Troubleshooting

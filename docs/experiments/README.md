@@ -28,3 +28,17 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 - `devmemory watch` on Claude history mtime
 - GEPA skill evolution from self-evolution repo (Phase later)
 - Pure OpenRouter HTTP path without Hermes CLI for CI minimalism
+
+## 2026-07-31 · empty H2 scrub (dogfood iter1)
+
+**Hypothesis:** Empty template H2s make knowledge files look unfinished.  
+**Method:** `scrub_empty_h2_sections` in `strip_placeholders`; lean DEV/USAGE templates.  
+**Result:** empty_h2 check → none; 20 tests.  
+**Keep.**
+
+## 2026-07-31 · knowledge path blocklist (dogfood iter2)
+
+**Hypothesis:** Model puts knowledge under tests/docs because those dirs exist.  
+**Method:** `is_knowledge_blocked` + resolve to `.`; prompt forbids those trees; delete stray DEV.md.  
+**Result:** unit tests green; prompt updated.  
+**Keep.**

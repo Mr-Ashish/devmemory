@@ -45,3 +45,9 @@ change code
 - Never commit `.env` or raw OpenRouter keys
 - Showcase packages run through `trace.py` redaction
 - `.devmemory/` remains gitignored; only curated slices are published
+
+## 2026-07-31 · recursive dogfood loop started
+
+- Iter1: empty H2 scrub (sections.py + apply templates)
+- Iter2: block knowledge under tests/docs/fixtures/assets/scripts
+- Live Opus 5 extract + showcase after each meaningful fix

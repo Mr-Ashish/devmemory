@@ -18,6 +18,8 @@
 - Various devmemory CLI commands available: `init`, `list-sessions`, `extract`, `apply --run <id>`, `status`, and `review`.
 - Example extract commands: `devmemory extract --fixture sample-auth-module --apply`, `devmemory extract --session <id> --apply`, `devmemory extract --offline --apply` for offline mode.
 
-## Debugging
-
 ## Troubleshooting
+
+- Hollow `## Architecture` / `## Troubleshooting` headings left in a DEV.md or USAGE.md mean the file predates the empty-section scrub; re-running any apply against that file removes them automatically.
+- After a dogfood run, `devmemory review` then plain `git diff` is the intended human gate — expect the diff to include deletions of previously empty H2 sections, not just added bullets.
+- Full local loop before pushing: `source .venv/bin/activate`, `./scripts/ensure-hermes.sh`, `./scripts/smoke-e2e.sh`, `devmemory extract --fixture dogfood-build-narrative --apply --force --showcase`, `pytest -q`.

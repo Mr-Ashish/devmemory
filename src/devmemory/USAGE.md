@@ -2,8 +2,6 @@
 
 > How to work with this part of the system.
 
-## Setup
-
 ## Common commands
 
 - Live dogfood extract with showcase: `devmemory extract --fixture dogfood-build-narrative --apply --force --showcase` (add `--showcase-dir <path>` for a custom output dir).
@@ -21,5 +19,3 @@
 - Per-stage `timings.json` in the run dir shows which phase is slow (assemble vs extract vs normalize vs apply).
 - Showcase privacy check: `trace.py` strips `sk-or` keys, `Bearer` tokens and env assignments before anything lands in `docs/showcase/`.
 - Test coverage targets ≥19 unit tests spanning redaction, normalize, apply dedupe, path snap and offline extract.
-
-## Troubleshooting

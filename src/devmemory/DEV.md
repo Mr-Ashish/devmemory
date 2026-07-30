@@ -28,6 +28,10 @@
 - `hermes-agent-self-evolution` is an idea source only (session importers, secret-redaction patterns, later skill GEPA) and is not part of the MVP runtime.
 - Live runs export `HERMES_TUI_TOOL_PROGRESS=verbose` so dogfood traces capture agent tool progress.
 
+- `DEV_TEMPLATE` / `USAGE_TEMPLATE` in `apply.py` contain only the H1 and the blockquote — canonical H2 sections are created on first real content instead of being pre-scaffolded empty.
+- `sections.strip_placeholders` ends by calling `scrub_empty_h2_sections`, so placeholder removal and hollow-heading removal are a single pass on every apply.
+- `scrub_empty_h2_sections` drops an `## ` heading plus its trailing blanks when every body line up to the next H2 is whitespace, keeps H1/blockquotes untouched, and collapses runs of blank lines to at most two.
+
 ## Patterns
 
 - Knowledge extraction pipeline runs as 4 separate phases: assemble context, extract knowledge using Hermes CLI call, normalize JSON output, then apply merged changes.
@@ -47,3 +51,9 @@
 - LLM-invented paths create junk doc trees — always snap a unit's path onto an existing directory (or `.`).
 - Enabling terminal tools during extract slows the run and distracts the model from the JSON output contract.
 - Never commit `.env` alongside `.devmemory/` and raw transcripts.
+
+- Redacting secrets before JSON parse corrupts the payload — run redaction over string fields *after* `normalize.py` parses the units.
+- Re-running extract without bullet near-dupe skipping thrashes DEV.md/USAGE.md with restated bullets.
+- Model-invented paths create junk directory trees; every unit path must snap to a directory that already exists.
+- Enabling terminal tools during extract slows the run and pulls the model off the JSON output contract.
+- Pre-seeding every canonical H2 leaves hollow headings and `_(none yet)_` placeholders in shipped docs; let the merge create sections lazily.

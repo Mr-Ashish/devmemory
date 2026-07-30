@@ -108,6 +108,33 @@ def test_apply_strips_placeholders(tmp_path: Path):
     assert "_(none yet)_" not in text
 
 
+def test_apply_scrubs_empty_h2_sections(tmp_path: Path):
+    p = tmp_path / "DEV.md"
+    p.write_text(
+        "# DEV\n\n## Architecture\n\n## Design decisions\n\n## Patterns\n\n"
+        "## Pitfalls\n- Never commit secrets.\n",
+        encoding="utf-8",
+    )
+    ch = apply_unit(
+        tmp_path,
+        KnowledgeUnit(
+            kind="dev",
+            path=".",
+            section="Patterns",
+            content="- Colocate knowledge with code",
+            confidence="high",
+        ),
+    )
+    assert ch is not None
+    text = p.read_text()
+    assert "## Architecture" not in text  # stayed empty → scrubbed
+    assert "## Design decisions" not in text
+    assert "## Patterns" in text
+    assert "Colocate knowledge" in text
+    assert "## Pitfalls" in text
+    assert "Never commit secrets" in text
+
+
 def test_apply_snaps_invented_path_to_existing(tmp_path: Path):
     (tmp_path / "src" / "auth").mkdir(parents=True)
     ch = apply_unit(

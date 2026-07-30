@@ -100,4 +100,44 @@ def strip_placeholders(text: str) -> str:
         else:
             blank = 0
             out.append(ln)
-    return "\n".join(out).rstrip() + "\n"
+    return scrub_empty_h2_sections("\n".join(out).rstrip() + "\n")
+
+
+def scrub_empty_h2_sections(text: str) -> str:
+    """Drop ## sections whose body is only whitespace (or placeholders already removed).
+
+    Keeps H1, blockquotes, and any H2 that has at least one non-empty body line.
+    """
+    if not text.strip():
+        return text if text.endswith("\n") else text + "\n"
+
+    lines = text.splitlines()
+    # Find H2 indices
+    h2_idx = [i for i, ln in enumerate(lines) if re.match(r"^##\s+\S", ln)]
+    if not h2_idx:
+        return text if text.endswith("\n") else text + "\n"
+
+    drop: set[int] = set()
+    for n, start in enumerate(h2_idx):
+        end = h2_idx[n + 1] if n + 1 < len(h2_idx) else len(lines)
+        body = lines[start + 1 : end]
+        if any(ln.strip() for ln in body):
+            continue
+        # empty body → drop heading and blank lines until next H2
+        for j in range(start, end):
+            drop.add(j)
+
+    kept = [ln for i, ln in enumerate(lines) if i not in drop]
+    # collapse excess blanks
+    out: list[str] = []
+    blank = 0
+    for ln in kept:
+        if not ln.strip():
+            blank += 1
+            if blank <= 2:
+                out.append(ln)
+        else:
+            blank = 0
+            out.append(ln)
+    result = "\n".join(out).rstrip() + "\n"
+    return result

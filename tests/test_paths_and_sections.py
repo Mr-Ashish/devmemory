@@ -12,6 +12,17 @@ def test_resolve_snaps_to_existing(tmp_path: Path):
     assert resolve_unit_path(tmp_path, "does/not/exist", existing_dirs=dirs) == "."
 
 
+def test_resolve_blocks_tests_and_docs(tmp_path: Path):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "docs" / "showcase").mkdir(parents=True)
+    (tmp_path / "src" / "devmemory").mkdir(parents=True)
+    dirs = list_repo_dirs(tmp_path)
+    assert resolve_unit_path(tmp_path, "tests", existing_dirs=dirs) == "."
+    assert resolve_unit_path(tmp_path, "docs/showcase", existing_dirs=dirs) == "."
+    assert resolve_unit_path(tmp_path, "docs/evals", existing_dirs=dirs) == "."
+    assert resolve_unit_path(tmp_path, "src/devmemory", existing_dirs=dirs) == "src/devmemory"
+
+
 def test_infer_paths_from_session_text(tmp_path: Path):
     (tmp_path / "src" / "auth").mkdir(parents=True)
     dirs = list_repo_dirs(tmp_path)
