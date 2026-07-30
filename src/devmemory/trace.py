@@ -157,8 +157,12 @@ def package_showcase(
         "repo-context.md",
         "meta.env",
         "apply.json",
+        "plan.json",
+        "preview.diff",
+        "preview.json",
         "extract.raw.md",
         "hermes-usage.json",
+        "timings.json",
     ):
         src = run_dir / name
         if src.exists():

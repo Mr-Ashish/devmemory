@@ -1,0 +1,56 @@
+```json
+{
+  "summary": "Most architecture/decision knowledge from this session is already captured in the colocated DEV/USAGE files. The durable gaps are the internal invariants of the extract pipeline (frozen pydantic schemas, cursor-gating on non-empty results, offline heuristic fallback), the ordering constraint that secret redaction must happen after JSON parse, and the triage path for empty-unit runs plus the live/dogfood eval gates.",
+  "session_ids": ["dogfood-build-narrative"],
+  "units": [
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Patterns",
+      "content": "- Schemas are frozen pydantic models (`KnowledgeUnit` / `ExtractionResult`) in `schema.py`, so malformed LLM output fails at parse time rather than leaking into the apply layer.\n- The processed-session cursor is only advanced when a run yields `units > 0`; empty runs leave the session unprocessed so it can be retried instead of being silently burned.\n- An offline heuristic extractor (path inference + command-line scraping) stands in for the LLM so CI can exercise the full pipeline without an OpenRouter key.",
+      "evidence": [
+        "Frozen schemas via pydantic KnowledgeUnit / ExtractionResult.",
+        "Only mark sessions processed when units > 0 (do not poison cursor on empty runs).",
+        "Offline heuristic extract for CI without OpenRouter (path inference + command lines)."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Pitfalls",
+      "content": "- Redaction order matters: scrubbing secrets *before* parsing can corrupt the JSON payload — `normalize.py` redacts string fields only after the model output is parsed.\n- Enabling terminal tools for the extract call both slows the run and pulls the model off the JSON output contract; leave toolsets empty unless a run genuinely needs shell access.",
+      "evidence": [
+        "Pre-parse secret redaction can break JSON — redact string fields after parse.",
+        "Using terminal tools on extract slows and distracts the model from JSON contract."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "usage",
+      "path": "src/devmemory",
+      "action": "merge",
+      "section": "Debugging",
+      "content": "- Zero units returned: open `extract.raw.md` in the run dir and look for non-JSON prose or a truncated fence; the offline heuristic path should still produce units, so an empty offline run points at assemble/context rather than the model.",
+      "evidence": [
+        "If units empty: inspect extract.raw.md for non-JSON; offline fallback should still produce units."
+      ],
+      "confidence": "high"
+    },
+    {
+      "kind": "dev",
+      "path": ".",
+      "action": "merge",
+      "section": "Patterns",
+      "content": "- Three eval tiers gate a change: unit tests (redaction, normalize, apply dedupe, path snap, offline extract), a live eval (`smoke-hermes` pong plus a fixture extract that must produce a `src/auth` DEV/USAGE split at high confidence), and a dogfood eval (self-extract must improve root and package DEV.md without reintroducing `_(none yet)_` placeholders).",
+      "evidence": [
+        "Live eval: smoke-hermes pong + fixture extract produces src/auth DEV/USAGE split with high confidence.",
+        "Dogfood eval: self-extract improves root and package DEV.md without reintroducing _(none yet)_ placeholders."
+      ],
+      "confidence": "medium"
+    }
+  ]
+}
+```

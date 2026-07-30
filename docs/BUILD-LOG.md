@@ -92,4 +92,5 @@ change code
 - Machine JSON: `preview.stats` + `preview.diff_path` + `preview.files`
 - `plan_result` now uses sequential preview (matches multi-unit `--apply`)
 - Tests: `tests/test_preview_diff.py` (7) → 51 total
+- Showcase packs `preview.diff` / `preview.json`; live Opus `dogfood-run-20260731T025840-bf64f4` hermes_rc=0 units=4 · eval 4.8/5
 - **Backlog:** R4 done → next **R5** (devmemory doctor)
