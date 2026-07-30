@@ -42,3 +42,17 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 **Method:** `is_knowledge_blocked` + resolve to `.`; prompt forbids those trees; delete stray DEV.md.  
 **Result:** unit tests green; prompt updated.  
 **Keep.**
+
+## 2026-07-31 · paraphrase near-dupe (dogfood iter3)
+
+**Hypothesis:** Containment-only dedupe misses reworded pitfalls.  
+**Method:** token Jaccard + light stemming; section-internal scrub.  
+**Result:** path-snap / redaction paraphrases collapsed; 22 tests.  
+**Keep.**
+
+## 2026-07-31 · allowed dirs in assemble (dogfood iter3)
+
+**Hypothesis:** Model proposes tests/docs because they appear in EXISTING_DIRS.  
+**Method:** filter dirs with `is_knowledge_blocked`; compact knowledge context.  
+**Result:** live Opus units had zero blocked paths.  
+**Keep.**

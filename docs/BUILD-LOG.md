@@ -51,3 +51,9 @@ change code
 - Iter1: empty H2 scrub (sections.py + apply templates)
 - Iter2: block knowledge under tests/docs/fixtures/assets/scripts
 - Live Opus 5 extract + showcase after each meaningful fix
+
+## 2026-07-31 · dogfood loop iter3
+
+- Paraphrase-level bullet near-dupe (Jaccard + stems)
+- Assemble-side allowed-dir filter + compact existing knowledge
+- Live Opus 5 showcase `dogfood-run-20260731T022731-f1515c` (blocked paths: none)

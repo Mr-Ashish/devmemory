@@ -86,6 +86,38 @@ def test_apply_skips_near_duplicate_bullets(tmp_path: Path):
     assert changes == []
 
 
+def test_apply_skips_paraphrase_near_dupes(tmp_path: Path):
+    apply_result(
+        tmp_path,
+        ExtractionResult(
+            units=[
+                KnowledgeUnit(
+                    kind="dev",
+                    path=".",
+                    section="Pitfalls",
+                    content="- Redacting secrets before parsing breaks JSON — redact after parse",
+                    confidence="high",
+                )
+            ]
+        ),
+    )
+    changes = apply_result(
+        tmp_path,
+        ExtractionResult(
+            units=[
+                KnowledgeUnit(
+                    kind="dev",
+                    path=".",
+                    section="Pitfalls",
+                    content="- Redacting secrets before JSON parse corrupts the payload — run redaction after normalize parses units",
+                    confidence="high",
+                )
+            ]
+        ),
+    )
+    assert changes == []
+
+
 def test_apply_strips_placeholders(tmp_path: Path):
     p = tmp_path / "DEV.md"
     p.write_text(

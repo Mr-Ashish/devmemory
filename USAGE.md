@@ -7,18 +7,14 @@
 - Create and activate Python virtual environment.
 - Set `OPENROUTER_API_KEY` environment variable for live extraction.
 - Optionally set `DEVMEMORY_ENV_FILE` for loading env vars.
-- Run `./scripts/ensure-hermes.sh` to install Hermes CLI and verify setup.
-
-## Common commands
+- Run `./scripts/ensure-hermes.sh` to install Hermes CLI and verify setup.## Common commands
 
 - pip install -e '.[dev]' to set up development environment.
 - Use `devmemory extract --fixture sample-auth-module --apply` to run the extraction and apply knowledge updates.
 - Run tests via `pytest -q`.
 - Hermes CLI can be installed and ensured via `./scripts/ensure-hermes.sh`.
 - Various devmemory CLI commands available: `init`, `list-sessions`, `extract`, `apply --run <id>`, `status`, and `review`.
-- Example extract commands: `devmemory extract --fixture sample-auth-module --apply`, `devmemory extract --session <id> --apply`, `devmemory extract --offline --apply` for offline mode.
-
-## Troubleshooting
+- Example extract commands: `devmemory extract --fixture sample-auth-module --apply`, `devmemory extract --session <id> --apply`, `devmemory extract --offline --apply` for offline mode.## Troubleshooting
 
 - Hollow `## Architecture` / `## Troubleshooting` headings left in a DEV.md or USAGE.md mean the file predates the empty-section scrub; re-running any apply against that file removes them automatically.
 - After a dogfood run, `devmemory review` then plain `git diff` is the intended human gate — expect the diff to include deletions of previously empty H2 sections, not just added bullets.

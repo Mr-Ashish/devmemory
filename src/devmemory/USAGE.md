@@ -9,9 +9,7 @@
 - Point env loading at an external file and pin the model before a live run: `export DEVMEMORY_ENV_FILE=<path to .env>` and `export DEVMEMORY_MODEL=anthropic/claude-opus-5`.
 - End-to-end smoke: `./scripts/smoke-e2e.sh`; Hermes-only connectivity check: `./scripts/smoke-hermes.sh`.
 - `devmemory review` shows the pending doc changes for human git review.
-- The last line of `devmemory extract` stdout is machine-readable JSON including `units`, `changes`, `model`, `hermes_rc`, `timings` and `showcase`.
-
-## Debugging
+- The last line of `devmemory extract` stdout is machine-readable JSON including `units`, `changes`, `model`, `hermes_rc`, `timings` and `showcase`.## Debugging
 
 - `hermes_rc != 0`: inspect `extract.raw.stderr` in the run dir, and confirm the seeded `HERMES_HOME/.env` is mode 0600 and contains `OPENROUTER_API_KEY`.
 - Zero units: read `extract.raw.md` for non-JSON output; the offline heuristic fallback should still produce units.
@@ -19,3 +17,10 @@
 - Per-stage `timings.json` in the run dir shows which phase is slow (assemble vs extract vs normalize vs apply).
 - Showcase privacy check: `trace.py` strips `sk-or` keys, `Bearer` tokens and env assignments before anything lands in `docs/showcase/`.
 - Test coverage targets ≥19 unit tests spanning redaction, normalize, apply dedupe, path snap and offline extract.
+
+## Troubleshooting
+
+- Context size is tunable via env: `DEVMEMORY_MAX_SESSION_CHARS` (24000), `DEVMEMORY_MAX_DIFF_CHARS` (40000), `DEVMEMORY_MAX_TREE_LINES` (200), `DEVMEMORY_MAX_KNOWLEDGE_CHARS` (1600). Raise these only when the model is clearly missing evidence — larger prompts increase restatement.
+- Unit landed under the wrong directory: confirm the target appears in the `EXISTING_DIRS` block of the assembled prompt and that the module dir shows up in the tree sample; blocked trees are filtered out on purpose and will never be accepted.
+- Docs growing on every run: verify near-dupe skipping is active (`apply.dedupe_section_bullets` / `scrub_file_near_dupes`) rather than editing the docs by hand.
+- Before publishing a run, remember `trace.py` redacts `sk-or` / `Bearer` tokens and env assignments on the way into `docs/showcase/` — never copy files there manually.

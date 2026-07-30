@@ -60,8 +60,42 @@ def _ensure_file(path: Path, kind: str) -> str:
 def _norm_bullet(line: str) -> str:
     s = line.strip().lstrip("-*").strip().lower()
     s = re.sub(r"\s+", " ", s)
-    s = re.sub(r"[`*]", "", s)
+    s = re.sub(r"[`*_'\".,;:()\[\]{}]", "", s)
     return s
+
+
+def _stem(tok: str) -> str:
+    t = tok
+    # longest-first; avoid over-stemming ("existing" must not become "exis")
+    for suf in ("ations", "ation", "tions", "iness", "ingly", "ing", "ers", "ies", "ied", "ed", "es", "s"):
+        if len(t) > len(suf) + 3 and t.endswith(suf):
+            return t[: -len(suf)]
+    return t
+
+
+def _token_set(norm: str) -> set[str]:
+    return {_stem(t) for t in norm.split() if len(t) > 2}
+
+
+def _near_duplicate(a: str, b: str, *, threshold: float = 0.52) -> bool:
+    """True if two normalized bullets are the same claim (containment or Jaccard)."""
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    if len(a) > 24 and len(b) > 24 and (a in b or b in a):
+        return True
+    ta, tb = _token_set(a), _token_set(b)
+    if not ta or not tb:
+        return False
+    inter = len(ta & tb)
+    union = len(ta | tb)
+    if union == 0:
+        return False
+    jacc = inter / union
+    smaller = min(len(ta), len(tb))
+    cover = inter / smaller if smaller else 0.0
+    return jacc >= threshold or cover >= 0.62
 
 
 def _content_bullets(content: str) -> list[str]:
@@ -78,23 +112,52 @@ def _content_bullets(content: str) -> list[str]:
 
 
 def _filter_new_bullets(existing_section_body: str, content: str) -> str:
-    """Return only bullets not already present (normalized)."""
-    existing_norms = {
+    """Return only bullets not already present (normalized / near-dupe)."""
+    existing_norms = [
         _norm_bullet(ln)
         for ln in existing_section_body.splitlines()
         if ln.strip().startswith(("-", "*"))
-    }
+    ]
     kept: list[str] = []
     for b in _content_bullets(content):
         n = _norm_bullet(b)
-        if not n or n in existing_norms:
+        if not n:
             continue
-        # near-duplicate: existing bullet contains new or vice versa
-        if any(n in e or e in n for e in existing_norms if len(e) > 20 and len(n) > 20):
+        if any(_near_duplicate(n, e) for e in existing_norms):
             continue
         kept.append(b)
-        existing_norms.add(n)
+        existing_norms.append(n)
     return "\n".join(kept)
+
+
+def dedupe_section_bullets(body: str) -> str:
+    """Drop near-duplicate bullets already inside a section body (first wins)."""
+    out: list[str] = []
+    norms: list[str] = []
+    for ln in body.splitlines():
+        if ln.strip().startswith(("-", "*")):
+            n = _norm_bullet(ln)
+            if n and any(_near_duplicate(n, e) for e in norms):
+                continue
+            if n:
+                norms.append(n)
+            out.append(ln)
+        else:
+            out.append(ln)
+    return "\n".join(out)
+
+
+def scrub_file_near_dupes(text: str) -> str:
+    """Within each H2 section, keep first bullet when near-duplicates appear."""
+    pattern = re.compile(
+        r"(^##\s+[^\n]+\n)([\s\S]*?)(?=^##\s+|\Z)",
+        re.MULTILINE,
+    )
+
+    def repl(m: re.Match) -> str:
+        return m.group(1) + dedupe_section_bullets(m.group(2))
+
+    return strip_placeholders(pattern.sub(repl, text))
 
 
 def _section_exists(text: str, section: str) -> bool:
@@ -113,14 +176,19 @@ def _append_section(text: str, section: str | None, content: str) -> str:
         m = pattern.search(text)
         if m:
             body = m.group(2)
-            body_clean = "\n".join(
-                ln for ln in body.splitlines() if not is_placeholder_line(ln)
+            body_clean = dedupe_section_bullets(
+                "\n".join(
+                    ln for ln in body.splitlines() if not is_placeholder_line(ln)
+                )
             )
             new_bullets = _filter_new_bullets(body_clean, content)
             if not new_bullets.strip():
-                # still scrub placeholders if any
                 cleaned = strip_placeholders(
-                    text[: m.start()] + m.group(1) + body_clean.rstrip() + "\n\n" + text[m.end() :]
+                    text[: m.start()]
+                    + m.group(1)
+                    + body_clean.rstrip()
+                    + "\n\n"
+                    + text[m.end() :]
                 )
                 return cleaned if cleaned != strip_placeholders(text) else text
             new_body = body_clean.rstrip()

@@ -1,0 +1,43 @@
+{
+  "run_id": "run-20260731T022731-f1515c",
+  "model": "anthropic/claude-opus-5",
+  "hermes_rc": 0,
+  "units": 5,
+  "summary": "Durable knowledge from the devmemory dogfood build sessions: the paraphrase-level bullet dedupe upgrade in apply.py, the assemble-side knowledge compaction plus blocked-tree filtering, a markdown heading-glue pitfall visible in the current diff, root-level model/dependency decisions, and the bounded-context env knobs for operators.",
+  "usage": {
+    "estimated_cost_usd": 0.20129625,
+    "cost_status": "estimated",
+    "cost_source": "provider_models_api",
+    "input_tokens": 2,
+    "output_tokens": 4101,
+    "cache_read_tokens": 20010,
+    "cache_write_tokens": 14201,
+    "reasoning_tokens": 440,
+    "total_tokens": 38314,
+    "api_calls": 1,
+    "model": "anthropic/claude-opus-5",
+    "provider": "openrouter",
+    "session_id": "20260731_022732_6f34b1",
+    "completed": true,
+    "failed": false,
+    "service_tier": null
+  },
+  "timings": {
+    "assemble_s": 0.086,
+    "extract_s": 47.208,
+    "normalize_s": 0.002,
+    "apply_s": 0.031,
+    "total_s": 47.33
+  },
+  "messages_meta": {
+    "db": "/Users/ashishmishra/Documents/experimentation/devmemory/.devmemory/hermes-home/state.db",
+    "messages": 2,
+    "session_id": "20260731_020504_9bd102"
+  },
+  "pipeline": [
+    "assemble",
+    "hermes_extract",
+    "normalize",
+    "apply"
+  ]
+}
