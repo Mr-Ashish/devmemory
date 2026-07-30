@@ -174,3 +174,7 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 2. Hook: default `DEVMEMORY_HOOK_REQUIRE_EDITS=1` → skip when transcript has no tool edits; missing transcript still allows run.
 3. Tests: chat-only skip, edit-present run, env opt-out.
 4. pytest → live Opus dogfood → eval → push.
+
+### Result
+
+**Keep.** 87 tests; chat-only SessionEnd skips; Write transcript runs. Live Opus showcase `dogfood-run-20260731T033504-281af8`, eval 5.0/5. Core habit loop (discover→extract→apply→reuse + gates) is solid; R8 watch optional.

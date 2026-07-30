@@ -24,6 +24,10 @@
 - Showcase privacy check: `trace.py` strips `sk-or` keys, `Bearer` tokens and env assignments before anything lands in `docs/showcase/`.
 - Test coverage targets ≥19 unit tests spanning redaction, normalize, apply dedupe, path snap and offline extract.
 
+- Gate decisions are logged to `.devmemory/hooks.log`: `skip: no tool edits` means the gate suppressed the run, `gate: tool_edits_present` means it allowed one.
+- To force a run past the gate without changing config: `export DEVMEMORY_HOOK_FORCE=1`.
+- Gate unit tests: `pytest tests/test_hook_gate.py -q`.
+
 ## Troubleshooting
 
 - Context size is tunable via env: `DEVMEMORY_MAX_SESSION_CHARS` (24000), `DEVMEMORY_MAX_DIFF_CHARS` (40000), `DEVMEMORY_MAX_TREE_LINES` (200), `DEVMEMORY_MAX_KNOWLEDGE_CHARS` (1600). Raise these only when the model is clearly missing evidence — larger prompts increase restatement.

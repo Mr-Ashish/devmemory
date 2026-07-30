@@ -124,3 +124,12 @@ change code
 - Tests: `tests/test_validate.py` (12) → **75 total**
 - Live Opus showcase `dogfood-run-20260731T032614-a2aa70` hermes_rc=0 units=4 · eval **5.0/5**
 - **Backlog:** R7 done → next **hook apply gate** (tool-edit only) or R8 watch
+
+## 2026-07-31 · Hook tool-edit gate (R7.5)
+
+- `hook_gate.py`: detect Write/Edit/MultiEdit/NotebookEdit/… in Claude JSONL; `should_run_extract_for_session`
+- `claude-code-hook.sh`: default require edits; skip chat-only; missing transcript allows; FORCE bypasses
+- Fail-open on import/IO errors; hook still always exit 0
+- Tests: `tests/test_hook_gate.py` (+ hook integration) → **87 total**
+- Live Opus showcase `dogfood-run-20260731T033504-281af8` hermes_rc=0 units=4 · eval **5.0/5**
+- **Backlog:** core habit loop solid. Optional **R8 watch**; else P2 polish only

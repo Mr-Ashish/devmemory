@@ -1,0 +1,51 @@
+# Agent loop · `run-20260731T033504-281af8`
+
+- **model:** `anthropic/claude-opus-5`
+- **hermes_rc:** 0
+- **units:** 4
+- **at:** 2026-07-30T22:05:31Z
+
+## Summary
+
+Session added a SessionEnd tool-edit gate: new src/devmemory/hook_gate.py consulted by scripts/claude-code-hook.sh, with an edit-class tool allowlist, JSONL tool_use detection, fail-open semantics, a DEVMEMORY_HOOK_FORCE bypass, and hooks.log markers for diagnosis. Existing knowledge only noted the gate's default-on behavior and the REQUIRE_EDITS=0 opt-out, so the module shape, detection rules and debug signals are new.
+
+## Usage
+
+```json
+{
+  "estimated_cost_usd": 0.2489725,
+  "cost_status": "estimated",
+  "cost_source": "provider_models_api",
+  "input_tokens": 2,
+  "output_tokens": 1897,
+  "cache_read_tokens": 0,
+  "cache_write_tokens": 32246,
+  "reasoning_tokens": 224,
+  "total_tokens": 34145,
+  "api_calls": 1,
+  "model": "anthropic/claude-opus-5",
+  "provider": "openrouter",
+  "session_id": "20260731_033505_a54fc6",
+  "completed": true,
+  "failed": false,
+  "service_tier": null
+}
+```
+
+## Timings (seconds)
+
+```json
+{
+  "assemble_s": 0.115,
+  "extract_s": 25.617,
+  "normalize_s": 0.001,
+  "apply_s": 1.283,
+  "total_s": 27.019
+}
+```
+
+## Pipeline
+
+```text
+session → assemble → hermes -z (OpenRouter) → normalize → apply → git review
+```

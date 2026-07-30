@@ -1,0 +1,38 @@
+[
+  {
+    "path": "src/devmemory/DEV.md",
+    "kind": "dev",
+    "action": "merge",
+    "section": "Architecture",
+    "bytes": 9290,
+    "applied": true,
+    "unit_path": "src/devmemory"
+  },
+  {
+    "path": "src/devmemory/DEV.md",
+    "kind": "dev",
+    "action": "merge",
+    "section": "Patterns",
+    "bytes": 9708,
+    "applied": true,
+    "unit_path": "src/devmemory"
+  },
+  {
+    "path": "src/devmemory/DEV.md",
+    "kind": "dev",
+    "action": "merge",
+    "section": "Pitfalls",
+    "bytes": 10043,
+    "applied": true,
+    "unit_path": "src/devmemory"
+  },
+  {
+    "path": "src/devmemory/USAGE.md",
+    "kind": "usage",
+    "action": "merge",
+    "section": "Debugging",
+    "bytes": 3188,
+    "applied": true,
+    "unit_path": "src/devmemory"
+  }
+]

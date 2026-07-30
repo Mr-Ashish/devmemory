@@ -13,6 +13,9 @@
 - `validate.py` is the form checker for colocated DEV.md/USAGE.md: H1 present, no `_(none yet)_` placeholders, no empty H2 sections, no glued mid-line `##` headings, knowledge not under blocked trees (`tests/`, `docs/`, `fixtures/`, `assets/`, `scripts/`), and a secret-pattern scan; non-canonical H2 titles are warnings, not failures.
 - `scripts/validate-knowledge.sh` wraps `devmemory validate --strict`; `.github/workflows/ci.yml` runs pytest plus a soft (non-`--strict`) `devmemory validate`, so warnings do not break CI while hard form errors do.
 
+- `hook_gate.py` owns the SessionEnd run/skip decision: `should_run_extract_for_session` is called by `scripts/claude-code-hook.sh` *before* it spawns the extract process, so a skipped session costs no Hermes/CLI startup.
+- `DEVMEMORY_HOOK_FORCE=1` short-circuits the gate entirely (always extract); `DEVMEMORY_HOOK_REQUIRE_EDITS=0` restores the pre-gate always-run behavior.
+
 ## Design decisions
 
 - Extraction pipeline stages: assemble → hermes extract → normalize → apply.
@@ -50,6 +53,10 @@
 
 - The unit suite is expected to cover the merge-quality surfaces specifically — redaction, normalize, apply dedupe, path snapping and offline extract — with roughly 19+ tests as the floor.
 
+- Edit-class tool allowlist for the hook gate: `Write`, `Edit`, `MultiEdit`, `NotebookEdit`, `Create`, `str_replace`, `apply_patch`, `Delete`.
+- Detection reads Claude `tool_use` content blocks or `tool_complete` traces, fronted by a fast regex pre-scan over JSONL lines so large transcripts are not fully parsed.
+- Bash-only sessions count as non-edits: shell activity is not treated as a durable code-write signal.
+
 ## Pitfalls
 - Redacting secrets before parsing breaks JSON — run redaction on string fields *after* the JSON parse in `normalize.py`.
 - Without bullet near-dupe skipping, re-running extract thrashes DEV.md/USAGE.md with restated content.
@@ -64,6 +71,9 @@
 - The directory list handed to the prompt is `list_repo_dirs` filtered by block rules and truncated to the first 80 entries.
 
 - The glued-heading check must ignore inline code mentions: a backticked `## Architecture` inside prose is documentation, not a mid-line heading, and flagging it produces false failures on the project's own DEV.md files.
+
+- Do not treat every JSON `name` field in a transcript as a tool invocation — require a `tool_use` type or surrounding tool-event context, or unrelated payload keys produce false edit signals.
+- The gate must never block Claude: gate exceptions and import errors fall through to *allow* extract, and the hook script always exits 0.
 
 ## Design decisions
 
