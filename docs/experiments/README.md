@@ -63,3 +63,10 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 **Method:** group history by `sessionId`; project JSONL by encoded path; strict cwd path match; newest-first with ms-normalized timestamps; default pick Claude before fixtures; env path overrides for tests.  
 **Result:** 8 discovery tests green; staged live layout `claude=2 unprocessed_claude=2`; default resolve picks real session; Opus dogfood lands `sources/DEV.md`.  
 **Keep.** Real `~/.claude` for this repo still empty until Claude Code is used here (fixtures remain fallback).
+
+## 2026-07-31 · R2 dry-run units+paths
+
+**Hypothesis:** Default extract should preview proposed knowledge paths so humans can gate before write; only `--apply` should mutate docs and the processed cursor.  
+**Method:** split `plan_unit`/`plan_result` from apply; extract always plans; mark processed only when `apply=True` and units>0; CLI machine JSON includes `proposed[]`.  
+**Result:** 5 dry-run tests green (35 total); offline dry-run writes zero DEV/USAGE files; live Opus apply hermes_rc=0, showcase `dogfood-run-20260731T024229-b45cff`, eval 4.8/5.  
+**Keep.**

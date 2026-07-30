@@ -210,6 +210,10 @@ open assets/devmemory-core.html   # or: python -m http.server 8765
 ### Extract flags
 
 ```bash
+# dry-run (default): units + proposed knowledge paths, no writes
+devmemory extract --fixture dogfood-build-narrative --offline --force
+
+# write DEV.md/USAGE.md + mark session processed
 devmemory extract --fixture dogfood-build-narrative --apply --force \
   --model anthropic/claude-opus-5 --showcase
 

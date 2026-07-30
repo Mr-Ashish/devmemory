@@ -65,3 +65,13 @@ change code
 - Tests: `tests/test_claude_discovery.py` (8)
 - Live Opus showcase `dogfood-run-20260731T023342-e5e026` → knowledge in `src/devmemory/sources/DEV.md`
 - **Backlog:** R1 done → next **R2** (dry-run units+proposed paths; --apply writes)
+
+## 2026-07-31 · R2 dry-run UX
+
+- `apply.plan_result` / `plan_unit`: proposed DEV.md/USAGE.md paths without disk writes
+- Extract always plans; `--apply` writes + marks processed; dry-run leaves cursor intact
+- CLI: `mode=dry-run|apply`, proposed path list, machine JSON `proposed[]`
+- Artifacts: `plan.json` (dry-run) vs `apply.json` (write)
+- Tests: `tests/test_dry_run.py` (5) → 35 total
+- Live Opus showcase `dogfood-run-20260731T024229-b45cff` hermes_rc=0 units=5
+- **Backlog:** R2 done → next **R3** (Claude Code stop-hook / one-liner)

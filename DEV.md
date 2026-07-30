@@ -16,3 +16,5 @@
 - `hermes-agent-self-evolution` is treated as an idea source only (session importers, secret-redaction patterns, later skill GEPA); it is not part of the MVP runtime.
 - The apply layer — not the prompt — is the quality boundary: path snapping to existing dirs, canonical H2 titles, bullet near-dupe skipping and placeholder scrubbing. The LLM proposes; merge decides.
 - Hermes runs extract with empty toolsets (pure reasoning over assembled context); `DEVMEMORY_TOOLSETS=terminal` is an explicit opt-in override.
+
+- Quality bar for the pipeline is tracked at three levels: unit tests over redaction / normalize / apply-dedupe / path-snap / offline extract (target ≥19 tests), a live eval (smoke-hermes pong plus a fixture extract that must produce a `src/auth` DEV/USAGE split at high confidence), and a dogfood eval (self-extract must improve root and package DEV.md without reintroducing `_(none yet)_` placeholders).

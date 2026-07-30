@@ -67,9 +67,16 @@
 - Exact-match dedupe is insufficient — the model happily re-emits the same claim in new words (e.g. "breaks JSON — redact after parse" vs "corrupts the payload — run redaction after normalize parses units"). Regression coverage for this lives in `tests/test_apply.py::test_apply_skips_paraphrase_near_dupes`, which asserts the second apply returns `changes == []`.
 - Feeding whole knowledge files back into the prompt encourages restatement; send only compacted H2 + top bullets.
 
+- Redacting secrets *before* parsing the model output corrupts the JSON payload; run redaction over string fields **after** parse (in `normalize.py`), never over the raw text.
+- Giving the extract step terminal tools slows the run and pulls the model off the JSON output contract — keep toolsets empty unless a specific run needs `DEVMEMORY_TOOLSETS=terminal`.
+- Units pointing at directories that do not exist create junk trees; every unit path must snap to an existing repo directory before write.
+- Re-running extract without bullet near-dupe skipping thrashes the DEV/USAGE files with restated bullets.
+
 ## Patterns
 
 - Schemas are frozen pydantic models (`KnowledgeUnit`, `ExtractionResult`) so normalize/apply operate on validated, immutable units.
 - A session is only recorded as processed when it produced `units > 0`, so an empty or failed run never poisons the cursor.
 - An offline heuristic extractor (path inference + command-line scraping) keeps CI green without an OpenRouter key.
 - The improvement loop is: improve product → run extract on this repo itself → update the colocated DEV/USAGE files → capture a redacted showcase run → push.
+
+- Extraction contracts are frozen pydantic models (`KnowledgeUnit` / `ExtractionResult` in `schema.py`), so malformed or extra LLM fields fail fast at normalize time instead of leaking into `apply.py`.
