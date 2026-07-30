@@ -221,3 +221,21 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 ### Decision
 
 **No build.** Core habit loop is solid (pytest 92, doctor ready_live, validate ok). This fire is health dogfood only. Consecutive no-P0/P1 fires: **1/3** toward scheduler DONE.
+
+## 2026-07-31 · fire · stability (no P0/P1) · 2/3
+
+**Persona jobs:** session→discover→extract→apply→reuse — still fully covered.
+
+### ROI rank (this fire)
+
+| Rank | Idea | Priority |
+|------|------|----------|
+| — | *(none)* | **no P0/P1** |
+| 1 | Canonicalize USAGE H2 Claude-hook section | P2 |
+| 2 | Semantic embedding dedupe | P2 |
+| 3 | Auto-install hook on init | P2 |
+| 4 | GEPA | deferred |
+
+### Decision
+
+**No build.** Reconfirmed R1–R8 solid; doctor ready_live; validate ok (1 P2 warn). Health dogfood only. Consecutive no-P0/P1 fires: **2/3**.

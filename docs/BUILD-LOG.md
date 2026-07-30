@@ -150,3 +150,10 @@ change code
 - No code change; health dogfood narrative re-run → hermes_rc=0, **0** knowledge writes (anti-restate)
 - Showcase `dogfood-run-20260731T034257-9c4ca1` · eval **5.0/5** · pytest 92
 - DONE counter: **1/3** consecutive no-P0/P1 fires
+
+## 2026-07-31 · stability fire 2/3 (no P0/P1)
+
+- Reconfirmed **no P0/P1**; health dogfood only
+- Live Opus narrative: hermes_rc=0, **units=0**, **0** writes (full anti-restate; no offline fallback)
+- Showcase `dogfood-run-20260731T034748-8d544b` · eval **5.0/5** · pytest 92
+- DONE counter: **2/3** consecutive no-P0/P1 fires
