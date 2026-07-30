@@ -36,6 +36,8 @@ class ApplyChange:
     action: str
     section: str | None
     bytes_written: int
+    applied: bool = True  # False when planned (dry-run), True after write
+    unit_path: str | None = None  # resolved module path for the unit
 
 
 def knowledge_filename(kind: str) -> str:
@@ -46,6 +48,13 @@ def target_file(repo_root: Path, unit: KnowledgeUnit, *, existing_dirs: list[str
     resolved = resolve_unit_path(repo_root, unit.path, existing_dirs=existing_dirs)
     rel = Path(".") if resolved in (".", "") else Path(resolved)
     return (repo_root / rel / knowledge_filename(unit.kind)).resolve()
+
+
+def _read_or_template(path: Path, kind: str) -> str:
+    """Read existing knowledge file or return template body (no disk write)."""
+    if path.exists():
+        return path.read_text(encoding="utf-8", errors="replace")
+    return DEV_TEMPLATE if kind == "dev" else USAGE_TEMPLATE
 
 
 def _ensure_file(path: Path, kind: str) -> str:
@@ -243,12 +252,18 @@ def prepare_unit(
     return unit.model_copy(update={"path": path, "section": section, "content": content})
 
 
-def apply_unit(
+def _compute_unit_text(
     repo_root: Path,
     unit: KnowledgeUnit,
     *,
     existing_dirs: list[str] | None = None,
-) -> ApplyChange | None:
+) -> tuple[KnowledgeUnit, Path, str, str, str] | None:
+    """Plan one unit write.
+
+    Returns (prepared_unit, target_path, existing_text, new_text, action)
+    or None when the unit is a no-op / out of bounds.
+    Does not touch the filesystem (except reading existing files).
+    """
     dirs = existing_dirs if existing_dirs is not None else list_repo_dirs(repo_root)
     unit = prepare_unit(repo_root, unit, existing_dirs=dirs)
 
@@ -263,37 +278,90 @@ def apply_unit(
     if not path.parent.exists() and path.parent != repo_root.resolve():
         return None
 
-    existing = _ensure_file(path, unit.kind)
+    existing = _read_or_template(path, unit.kind)
     if unit.action == "replace_section" and unit.section:
         new_text = _replace_section(existing, unit.section, unit.content)
+        action = unit.action
     else:
         new_text = _append_section(existing, unit.section, unit.content)
+        action = unit.action
 
     new_text = strip_placeholders(new_text)
     if new_text == strip_placeholders(existing) and path.exists():
-        # no material change
         if new_text == existing:
             return None
         # placeholders cleaned only
-        path.write_text(new_text if new_text.endswith("\n") else new_text + "\n", encoding="utf-8")
-        return ApplyChange(
-            path=path,
-            kind=unit.kind,
-            action="scrub",
-            section=unit.section,
-            bytes_written=len(new_text.encode("utf-8")),
-        )
+        return unit, path, existing, new_text, "scrub"
 
     if new_text == existing:
         return None
-    path.write_text(new_text if new_text.endswith("\n") else new_text + "\n", encoding="utf-8")
+    return unit, path, existing, new_text, action
+
+
+def plan_unit(
+    repo_root: Path,
+    unit: KnowledgeUnit,
+    *,
+    existing_dirs: list[str] | None = None,
+) -> ApplyChange | None:
+    """Dry-run a single unit: proposed path/section without writing."""
+    computed = _compute_unit_text(repo_root, unit, existing_dirs=existing_dirs)
+    if computed is None:
+        return None
+    prepared, path, _existing, new_text, action = computed
+    final = new_text if new_text.endswith("\n") else new_text + "\n"
     return ApplyChange(
         path=path,
-        kind=unit.kind,
-        action=unit.action,
-        section=unit.section,
-        bytes_written=len(new_text.encode("utf-8")),
+        kind=prepared.kind,
+        action=action,
+        section=prepared.section,
+        bytes_written=len(final.encode("utf-8")),
+        applied=False,
+        unit_path=prepared.path,
     )
+
+
+def apply_unit(
+    repo_root: Path,
+    unit: KnowledgeUnit,
+    *,
+    existing_dirs: list[str] | None = None,
+) -> ApplyChange | None:
+    computed = _compute_unit_text(repo_root, unit, existing_dirs=existing_dirs)
+    if computed is None:
+        return None
+    prepared, path, _existing, new_text, action = computed
+    final = new_text if new_text.endswith("\n") else new_text + "\n"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(final, encoding="utf-8")
+    return ApplyChange(
+        path=path,
+        kind=prepared.kind,
+        action=action,
+        section=prepared.section,
+        bytes_written=len(final.encode("utf-8")),
+        applied=True,
+        unit_path=prepared.path,
+    )
+
+
+def plan_result(
+    repo_root: Path,
+    result: ExtractionResult,
+    *,
+    min_confidence: set[str] | None = None,
+) -> list[ApplyChange]:
+    """Dry-run all units: proposed knowledge file paths without writing."""
+    allowed = min_confidence or {"high", "medium"}
+    dirs = list_repo_dirs(repo_root)
+    changes: list[ApplyChange] = []
+    for unit in result.units:
+        if unit.confidence not in allowed:
+            continue
+        ch = plan_unit(repo_root, unit, existing_dirs=dirs)
+        if ch:
+            changes.append(ch)
+    return changes
 
 
 def apply_result(

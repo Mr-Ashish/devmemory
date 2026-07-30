@@ -12,7 +12,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
-from devmemory.apply import ApplyChange, apply_result
+from devmemory.apply import ApplyChange, apply_result, plan_result
 from devmemory.assemble import assemble
 from devmemory.normalize import normalize_extraction, write_units
 from devmemory.paths import infer_paths_from_text, list_repo_dirs
@@ -402,36 +402,41 @@ def extract_session(
         encoding="utf-8",
     )
 
-    changes: list[ApplyChange] = []
+    # Always plan proposed knowledge paths; write only when --apply.
+    t_p = time.perf_counter()
     if apply:
-        t_p = time.perf_counter()
         changes = apply_result(repo_root, result)
-        timings["apply_s"] = round(time.perf_counter() - t_p, 3)
-        (ctx.run_dir / "apply.json").write_text(
-            json.dumps(
-                [
-                    {
-                        "path": str(c.path.relative_to(repo_root)),
-                        "kind": c.kind,
-                        "action": c.action,
-                        "section": c.section,
-                        "bytes": c.bytes_written,
-                    }
-                    for c in changes
-                ],
-                indent=2,
-            )
-            + "\n",
-            encoding="utf-8",
+    else:
+        changes = plan_result(repo_root, result)
+    timings["apply_s"] = round(time.perf_counter() - t_p, 3)
+    (ctx.run_dir / ("apply.json" if apply else "plan.json")).write_text(
+        json.dumps(
+            [
+                {
+                    "path": str(c.path.relative_to(repo_root)),
+                    "kind": c.kind,
+                    "action": c.action,
+                    "section": c.section,
+                    "bytes": c.bytes_written,
+                    "applied": c.applied,
+                    "unit_path": c.unit_path,
+                }
+                for c in changes
+            ],
+            indent=2,
         )
+        + "\n",
+        encoding="utf-8",
+    )
 
     timings["total_s"] = round(time.perf_counter() - t0, 3)
     (ctx.run_dir / "timings.json").write_text(
         json.dumps(timings, indent=2) + "\n", encoding="utf-8"
     )
 
-    # Only mark processed when we extracted something durable (avoid poisoning the cursor)
-    if result.units:
+    # Mark processed only after a successful apply with durable units.
+    # Dry-run must leave the unprocessed cursor intact so re-extract works.
+    if apply and result.units:
         paths.mark_processed(
             session.session_id,
             run_id=run_id,

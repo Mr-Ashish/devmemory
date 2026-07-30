@@ -31,6 +31,13 @@ def _fixtures_dir() -> Path:
     return package_root() / "fixtures" / "sessions"
 
 
+def _rel_knowledge(path: Path, root: Path) -> str:
+    try:
+        return str(path.relative_to(root.resolve()))
+    except ValueError:
+        return str(path)
+
+
 def _resolve_session(
     repo: Path,
     *,
@@ -203,7 +210,11 @@ def status_cmd(repo: str | None) -> None:
 @click.option("--session", "session_id", default=None, help="Session id")
 @click.option("--fixture", default=None, help="Fixture name or path")
 @click.option("--text-file", type=click.Path(path_type=Path), default=None)
-@click.option("--apply/--no-apply", default=False, help="Write DEV.md/USAGE.md")
+@click.option(
+    "--apply/--no-apply",
+    default=False,
+    help="Write DEV.md/USAGE.md (default is dry-run: units + proposed paths only)",
+)
 @click.option("--offline/--live", default=False, help="Heuristic extract without Hermes")
 @click.option("--force", is_flag=True, help="Re-process already processed session")
 @click.option("--model", default=None, help="OpenRouter model id (default: opus-5)")
@@ -230,14 +241,20 @@ def extract_cmd(
     showcase: bool,
     showcase_dir: Path | None,
 ) -> None:
-    """Extract durable knowledge from a session."""
+    """Extract durable knowledge from a session.
+
+    Default is dry-run: prints units and proposed knowledge paths without writing.
+    Pass --apply to write DEV.md/USAGE.md and mark the session processed.
+    With no --session/--fixture, prefers the latest unprocessed real Claude session.
+    """
     root = _repo_path(repo)
     session = _resolve_session(
         root, session_id=session_id, fixture=fixture, text_file=text_file
     )
+    mode = "apply" if apply else "dry-run"
     console.print(
         f"[bold]extract[/bold] session={session.session_id} source={session.source} "
-        f"apply={apply} offline={offline}"
+        f"mode={mode} offline={offline}"
     )
     show: bool | Path | None = False
     if showcase_dir is not None:
@@ -268,14 +285,25 @@ def extract_cmd(
         console.print(
             f"  - [{u.confidence}] {u.kind} path={u.path!r} section={u.section!r}"
         )
-    if apply:
-        console.print(f"[green]applied[/green] {len(outcome.changes)} file change(s)")
-        for c in outcome.changes:
-            try:
-                rel = c.path.relative_to(root)
-            except ValueError:
-                rel = c.path
-            console.print(f"  - {rel} ({c.kind}/{c.action})")
+    # Dry-run (default): show proposed knowledge files; --apply writes them.
+    mode = "applied" if apply else "proposed"
+    color = "green" if apply else "cyan"
+    console.print(
+        f"[{color}]{mode}[/{color}] {len(outcome.changes)} knowledge path(s)"
+        + ("" if apply else " (dry-run; pass --apply to write)")
+    )
+    for c in outcome.changes:
+        try:
+            rel = c.path.relative_to(root)
+        except ValueError:
+            rel = c.path
+        unit_p = c.unit_path or ""
+        console.print(
+            f"  - {rel} ({c.kind}/{c.action}"
+            + (f" section={c.section!r}" if c.section else "")
+            + (f" unit_path={unit_p!r}" if unit_p else "")
+            + ")"
+        )
     if outcome.showcase_dir:
         console.print(f"[green]showcase[/green] {outcome.showcase_dir}")
     # machine-readable last line for scripts
@@ -284,8 +312,22 @@ def extract_cmd(
             {
                 "run_id": outcome.run_id,
                 "run_dir": str(outcome.run_dir),
+                "session_id": session.session_id,
+                "source": session.source,
                 "units": len(outcome.result.units),
                 "changes": len(outcome.changes),
+                "apply": apply,
+                "proposed": [
+                    {
+                        "path": _rel_knowledge(c.path, root),
+                        "kind": c.kind,
+                        "action": c.action,
+                        "section": c.section,
+                        "unit_path": c.unit_path,
+                        "applied": c.applied,
+                    }
+                    for c in outcome.changes
+                ],
                 "model": outcome.model,
                 "hermes_rc": outcome.hermes_rc,
                 "timings": outcome.timings,
