@@ -103,3 +103,14 @@ change code
 - Tests: `tests/test_doctor.py` (7) → 58 total
 - Live: `doctor --strict` ready_live=yes; Opus showcase `dogfood-run-20260731T030327-011c11` hermes_rc=0; smoke-e2e **E2E_OK**; eval 4.7/5
 - **Milestone:** R1–R5 proven (tests+live). Next optional **R6** anti-restate
+
+## 2026-07-31 · R6 anti-restate (claim index)
+
+- `_near_duplicate`: stopwords + significant-token overlap (inter≥4 / cover≥0.55); norm strips `/`
+- Whole-file claim norms in `_append_section` (cross-section restates skipped)
+- `scrub_file_near_dupes` file-wide, wired into `_compute_unit_text` (was dead/section-local)
+- Assemble: compact claim index fingerprints + excerpts; prompt “return units:[] if only restates”
+- Offline fallback only on `hermes_rc != 0` or parse failure — intentional empty units preserved
+- Tests: 3 apply + 2 fallback → **63 total**
+- Live Opus showcase `dogfood-run-20260731T031810-c66390` hermes_rc=0 units=2 (+4/-0) · eval **5.0/5**
+- **Backlog:** R6 done → next **R7** CI form-validator

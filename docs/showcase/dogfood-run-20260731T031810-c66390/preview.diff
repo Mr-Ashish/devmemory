@@ -1,0 +1,17 @@
+diff --git a/src/devmemory/DEV.md b/src/devmemory/DEV.md
+--- a/src/devmemory/DEV.md
++++ b/src/devmemory/DEV.md
+@@ -57,10 +57,14 @@
+ 
+ - `devmemory list-sessions` lists Claude rows before fixture rows, adds a `turns` column from `meta`, and prints a `claude=<n> unprocessed_claude=<n> shown=<n>` summary line so it is obvious whether real sessions were discovered at all.
+ 
++- When the fallback does fire, the result is re-stamped via `result.model_copy(update={"model": model})` so the recorded model carries the `+offline-fallback` suffix instead of the original model id.
++
+ ## Pitfalls
+ 
+ - Feeding whole knowledge files back into the prompt encourages restatement; send only compacted H2 + top bullets.
+ 
++- Falling back to the offline extractor on *any* empty unit list defeats anti-restate: heuristic units thrash the DEV/USAGE files and can leak inferred paths. Only a hard Hermes failure or unparseable output justifies the fallback.
++- Regression coverage lives in `tests/test_fixtures_and_offline.py`: `test_intentional_empty_units_skips_offline_fallback` monkeypatches `devmemory.extract.offline_extract` to raise if called, and `test_parse_failure_still_uses_offline_fallback` asserts non-JSON output does yield heuristic units with `offline-fallback` in the model name.
+ 
+ ## Patterns

@@ -1,0 +1,20 @@
+[
+  {
+    "path": "src/devmemory/DEV.md",
+    "kind": "dev",
+    "action": "merge",
+    "section": "Design decisions",
+    "bytes": 6967,
+    "applied": true,
+    "unit_path": "src/devmemory"
+  },
+  {
+    "path": "src/devmemory/DEV.md",
+    "kind": "dev",
+    "action": "merge",
+    "section": "Pitfalls",
+    "bytes": 7539,
+    "applied": true,
+    "unit_path": "src/devmemory"
+  }
+]

@@ -22,7 +22,6 @@
 - The apply layer is the product quality boundary: path snapping to existing dirs, canonical H2 sections, bullet near-dupe skip, placeholder scrub. The LLM proposes; merge decides.
 - Default extraction model is `anthropic/claude-opus-5` (dogfood quality); `openai/gpt-4.1-mini` is acceptable for cheap iteration. Resolution order is `--model` → `DEVMEMORY_MODEL` → default.
 - Hermes toolsets are empty by default for extract so the run is pure reasoning over the assembled context; set `DEVMEMORY_TOOLSETS=terminal` only when a run genuinely needs shell access.
-- Showcase packaging is opt-in via `--showcase` / `--showcase-dir`; `trace.py` redacts before writing, so only sanitized traces reach `docs/showcase/`.
 - `hermes-agent-self-evolution` is an idea source only (session importers, secret-redaction patterns, later skill GEPA) and is not part of the MVP runtime.
 - Live runs export `HERMES_TUI_TOOL_PROGRESS=verbose` so dogfood traces capture agent tool progress.
 
@@ -30,7 +29,6 @@
 - `sections.strip_placeholders` ends by calling `scrub_empty_h2_sections`, so placeholder removal and hollow-heading removal are a single pass on every apply.
 - `scrub_empty_h2_sections` drops an `## ` heading plus its trailing blanks when every body line up to the next H2 is whitespace, keeps H1/blockquotes untouched, and collapses runs of blank lines to at most two.## Patterns
 
-- Localized knowledge files (DEV.md for engineering details, USAGE.md for operational instructions) live next to code modules to provide context-targeted documentation.
 - DEV.md captures architecture, design decisions, patterns, pitfalls, and module-specific engineering context.
 - USAGE.md captures setup steps, commands, debugging, troubleshooting, and workflows essential for working with the code part.
 - Extraction process keeps knowledge generation as an automatic by-product of development sessions.
@@ -56,34 +54,19 @@
 - Bullet dedupe in `apply.py` is paraphrase-aware, not just exact: `_near_duplicate` accepts a match on substring containment (both bullets >24 chars), Jaccard ≥ 0.52, or coverage of the smaller token set ≥ 0.62.
 - `_norm_bullet` strips quotes, underscores and punctuation (`_'".,;:()[]{}`) in addition to backticks/asterisks so restated bullets normalize to the same string.
 - `_token_set` applies a longest-suffix-first `_stem` (ations/ation/tions/ing/ers/ies/ed/es/s) and drops tokens ≤2 chars; the stem guard requires `len(t) > len(suf) + 3` to avoid over-stemming words like "existing".
-- `dedupe_section_bullets` (first bullet wins) runs on the *existing* section body before new bullets are filtered, so a file that already contains duplicates gets cleaned on the next apply; `scrub_file_near_dupes` applies it per `## ` section and finishes with `strip_placeholders`.
 
-- Session resolution in `cli.py` prefers **real** Claude sessions over packaged fixtures at every entry point: explicit `--session-id` searches Claude first then fixtures, the default path uses `pick_latest_unprocessed` over Claude before falling back to unprocessed fixtures, and the last resort is the newest Claude session even if already processed.
 - `devmemory list-sessions` lists Claude rows before fixture rows, adds a `turns` column from `meta`, and prints a `claude=<n> unprocessed_claude=<n> shown=<n>` summary line so it is obvious whether real sessions were discovered at all.
+
+- When the fallback does fire, the result is re-stamped via `result.model_copy(update={"model": model})` so the recorded model carries the `+offline-fallback` suffix instead of the original model id.
 
 ## Pitfalls
 
-- Section-append must preserve the blank line before the next `## ` heading: when the trailing newline is consumed, the following heading is glued onto the last bullet and stops rendering as a heading (`- …maintainability issues.## Patterns`). This regression shows up across every merged DEV.md/USAGE.md at once, so check one file's diff before re-running a full apply.
-- Exact-match dedupe is insufficient — the model happily re-emits the same claim in new words (e.g. "breaks JSON — redact after parse" vs "corrupts the payload — run redaction after normalize parses units"). Regression coverage for this lives in `tests/test_apply.py::test_apply_skips_paraphrase_near_dupes`, which asserts the second apply returns `changes == []`.
 - Feeding whole knowledge files back into the prompt encourages restatement; send only compacted H2 + top bullets.
 
-- Redacting secrets *before* parsing the model output corrupts the JSON payload; run redaction over string fields **after** parse (in `normalize.py`), never over the raw text.
-- Giving the extract step terminal tools slows the run and pulls the model off the JSON output contract — keep toolsets empty unless a specific run needs `DEVMEMORY_TOOLSETS=terminal`.
-- Units pointing at directories that do not exist create junk trees; every unit path must snap to an existing repo directory before write.
-- Re-running extract without bullet near-dupe skipping thrashes the DEV/USAGE files with restated bullets.
-
-- Redaction order matters: scrubbing secrets *before* JSON parsing corrupts the payload (escapes/quotes inside strings), so `normalize.py` parses first and only then redacts string fields.
+- Falling back to the offline extractor on *any* empty unit list defeats anti-restate: heuristic units thrash the DEV/USAGE files and can leak inferred paths. Only a hard Hermes failure or unparseable output justifies the fallback.
+- Regression coverage lives in `tests/test_fixtures_and_offline.py`: `test_intentional_empty_units_skips_offline_fallback` monkeypatches `devmemory.extract.offline_extract` to raise if called, and `test_parse_failure_still_uses_offline_fallback` asserts non-JSON output does yield heuristic units with `offline-fallback` in the model name.
 
 ## Patterns
 
-- Schemas are frozen pydantic models (`KnowledgeUnit`, `ExtractionResult`) so normalize/apply operate on validated, immutable units.
-- A session is only recorded as processed when it produced `units > 0`, so an empty or failed run never poisons the cursor.
-- An offline heuristic extractor (path inference + command-line scraping) keeps CI green without an OpenRouter key.
-- The improvement loop is: improve product → run extract on this repo itself → update the colocated DEV/USAGE files → capture a redacted showcase run → push.
 
-- Extraction contracts are frozen pydantic models (`KnowledgeUnit` / `ExtractionResult` in `schema.py`), so malformed or extra LLM fields fail fast at normalize time instead of leaking into `apply.py`.
-
-- Schemas are frozen pydantic models (`KnowledgeUnit` / `ExtractionResult`) in `schema.py`, so malformed LLM output fails at parse time rather than leaking into the apply layer.
 - The processed-session cursor is only advanced when a run yields `units > 0`; empty runs leave the session unprocessed so it can be retried instead of being silently burned.
-
-- Extraction contracts are frozen pydantic models (`KnowledgeUnit` / `ExtractionResult` in `schema.py`); normalize validates the model's JSON against them instead of hand-rolling dict checks.

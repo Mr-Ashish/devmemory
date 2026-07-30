@@ -4,6 +4,7 @@ Curated, **redacted** live runs of devmemory dogfooding itself.
 
 | Run | Model | Notes |
 |-----|-------|-------|
+| [dogfood-run-20260731T031810-c66390](./dogfood-run-20260731T031810-c66390/) | Opus 5 | **R6** anti-restate · ~19s · 2 units · +4/−0 · hermes_rc=0 |
 | [dogfood-run-20260731T030327-011c11](./dogfood-run-20260731T030327-011c11/) | Opus 5 | **R5** doctor ship · ~27s · 4 units · hermes_rc=0 |
 | [dogfood-run-20260731T025840-bf64f4](./dogfood-run-20260731T025840-bf64f4/) | Opus 5 | **R4** unified preview.diff · ~32s · 4 units · +3/−0 |
 | [dogfood-run-20260731T025126-b52ea6](./dogfood-run-20260731T025126-b52ea6/) | Opus 5 | **R3** SessionEnd hook ship · ~32s · 4 units · hermes_rc=0 |

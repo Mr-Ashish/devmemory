@@ -122,3 +122,7 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 3. Wire `scrub_file_near_dupes` file-wide into apply path; compact **claim index** in assemble + prompt “return units:[] if only restates”.
 4. Tests: technical restate skip, cross-section skip, file-wide scrub.
 5. pytest → live Opus dogfood → eval → push.
+
+### Result
+
+**Keep.** Live Opus: narrative restates dropped; only R6 delta units applied (+4/-0). Offline fallback gated so intentional `units:[]` is not replaced. Showcase `dogfood-run-20260731T031810-c66390`, eval 5.0/5, 63 tests.

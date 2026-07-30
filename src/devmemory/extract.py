@@ -388,10 +388,14 @@ def extract_session(
             raw_path=str(raw_path),
         )
         timings["normalize_s"] = round(time.perf_counter() - t_n, 3)
-        # Fallback only when Hermes hard-failed or returned unparseable empty
-        if not result.units:
+        # Fallback only when Hermes hard-failed or JSON was unparseable.
+        # Intentional empty units (R6 anti-restate: model says "nothing new")
+        # must NOT be replaced by offline heuristics (they thrash docs / leak paths).
+        parse_failed = (result.summary or "").startswith("Failed to parse")
+        if not result.units and (hermes_rc != 0 or parse_failed):
             result = offline_extract(session, repo_root)
             model = f"{model}+offline-fallback"
+            result = result.model_copy(update={"model": model})
 
     write_units(result, units_path)
     (ctx.run_dir / "summary.md").write_text(
