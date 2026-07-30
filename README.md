@@ -288,6 +288,7 @@ Manual one-liner for settings (absolute path to the script):
 | `DEVMEMORY_OFFLINE=1` | force offline extract |
 | `DEVMEMORY_HOOK_APPLY=1` | hook writes DEV/USAGE (default dry-run) |
 | `DEVMEMORY_HOOK_ON_STOP=1` | allow per-turn Stop events (not recommended) |
+| `DEVMEMORY_HOOK_REQUIRE_EDITS=0` | allow chat-only SessionEnd extracts (default: skip if no Write/Edit tools) |
 
 ---
 

@@ -31,6 +31,7 @@ Install once per project (or use `--user` for all repos):
 
 - Auto-write: `export DEVMEMORY_HOOK_APPLY=1` before Claude Code.
 - Prefer **SessionEnd** over **Stop** (Stop fires every turn; thrashy). Opt-in: `./scripts/install-claude-hook.sh --with-stop`.
+- **Tool-edit gate (default on):** skips extract when the session transcript has no Write/Edit-class tools (chat-only). Opt out: `export DEVMEMORY_HOOK_REQUIRE_EDITS=0`. Missing transcript still allows a run.
 - Print fragment only: `./scripts/install-claude-hook.sh --print`.
 - Hook never blocks Claude (always exit 0); never commits `.env` / `.devmemory/`.
 
@@ -40,4 +41,5 @@ Install once per project (or use `--user` for all repos):
 - After a dogfood run: `devmemory review` then `git diff` as the human gate.
 - Hook silent? Check `.devmemory/hooks.log`; ensure `devmemory` is on PATH or `.venv/bin/devmemory` exists; set `DEVMEMORY_HOOK_VERBOSE=1` for stderr.
 - Hook skipped on Stop: expected unless `DEVMEMORY_HOOK_ON_STOP=1`.
+- Hook skipped with `no tool edits`: session was chat-only; write code in the session or set `DEVMEMORY_HOOK_REQUIRE_EDITS=0` / `DEVMEMORY_HOOK_FORCE=1`.
 - Live extract fails? Run `devmemory doctor --strict` — fix hermes (`./scripts/ensure-hermes.sh`) or `OPENROUTER_API_KEY` / `DEVMEMORY_ENV_FILE`.

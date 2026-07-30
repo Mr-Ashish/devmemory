@@ -152,3 +152,25 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 ### Result
 
 **Keep.** 75 tests; repo `validate` ok (1 custom-section warn). Live Opus R7 ship narrative units=4 → showcase `dogfood-run-20260731T032614-a2aa70`, eval 5.0/5.
+
+## 2026-07-31 · fire · hook tool-edit gate (R7.5 / pre-R8)
+
+**Persona jobs:** session→extract (habit loop without thrash).
+**Gap:** SessionEnd hook fires after every session including pure chat; dry-runs still burn Hermes/offline noise and log spam when nothing was written to the tree.
+
+### ROI rank (this fire)
+
+| Rank | Idea | Impact×adoption / effort |
+|------|------|--------------------------|
+| 1 | **Hook tool-edit gate** | High adoption ROI — less noise after chat-only Claude sessions |
+| 2 | R8 `watch` | Lower until real Claude sessions land on this repo |
+| 3 | Canonicalize custom USAGE H2 (Claude hook) | P2 polish |
+| 4 | Semantic embedding dedupe | P2 |
+| 5 | GEPA | Skip |
+
+### Build plan
+
+1. `hook_gate.py`: detect Write/Edit/MultiEdit/NotebookEdit (and kin) in transcript JSONL or text.
+2. Hook: default `DEVMEMORY_HOOK_REQUIRE_EDITS=1` → skip when transcript has no tool edits; missing transcript still allows run.
+3. Tests: chat-only skip, edit-present run, env opt-out.
+4. pytest → live Opus dogfood → eval → push.

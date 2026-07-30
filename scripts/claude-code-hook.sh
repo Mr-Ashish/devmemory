@@ -13,6 +13,7 @@
 #   DEVMEMORY_HOOK_DEBOUNCE_S=N  min seconds between runs per session (default 120)
 #   DEVMEMORY_HOOK_FORCE=1       pass --force (re-process)
 #   DEVMEMORY_HOOK_MODEL=...     model override
+#   DEVMEMORY_HOOK_REQUIRE_EDITS=0  allow chat-only sessions (default: 1 = skip if no Write/Edit tools)
 #   DEVMEMORY_ENV_FILE=...       load OpenRouter key
 #   DEVMEMORY_BIN=...            path to devmemory executable
 #
@@ -130,6 +131,45 @@ if [[ -f "$STAMP_FILE" && "${DEVMEMORY_HOOK_FORCE:-0}" != "1" ]]; then
   fi
 fi
 printf '%s' "$NOW" >"$STAMP_FILE" 2>/dev/null || true
+
+# Tool-edit gate (default on): chat-only sessions skip extract to avoid thrash.
+# Set DEVMEMORY_HOOK_REQUIRE_EDITS=0 to always run. Missing transcript → allow.
+# DEVMEMORY_HOOK_FORCE=1 bypasses the gate (still re-processes).
+if [[ "${DEVMEMORY_HOOK_REQUIRE_EDITS:-1}" != "0" && "${DEVMEMORY_HOOK_FORCE:-0}" != "1" ]]; then
+  _SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../src" 2>/dev/null && pwd || true)"
+  _gate_out="$(
+    HOOK_TRANSCRIPT="${HOOK_TRANSCRIPT:-}" \
+    HOOK_SESSION_ID="${HOOK_SESSION_ID:-}" \
+    HOOK_REPO="$REPO" \
+    PYTHONPATH="${_SRC_DIR}${PYTHONPATH:+:$PYTHONPATH}" \
+    python3 - <<'PY' 2>/dev/null
+import os, sys
+try:
+    from devmemory.hook_gate import should_run_extract_for_session
+except Exception as e:
+    print(f"allow import_error:{e}")
+    sys.exit(0)
+from pathlib import Path
+run, reason = should_run_extract_for_session(
+    require_edits=True,
+    hook_transcript=os.environ.get("HOOK_TRANSCRIPT") or None,
+    session_id=os.environ.get("HOOK_SESSION_ID") or None,
+    repo_root=Path(os.environ.get("HOOK_REPO") or "."),
+)
+print(("run" if run else "skip") + " " + reason)
+sys.exit(0 if run else 3)
+PY
+  )"
+  _gate_rc=$?
+  # python exit 3 or stdout starts with skip → no tool edits
+  if [[ "${_gate_rc:-0}" -eq 3 ]] || [[ "$_gate_out" == skip* ]]; then
+    _log "skip: no tool edits (${_gate_out:-require_edits})"
+    exit 0
+  fi
+  if [[ -n "$_gate_out" ]]; then
+    _log "gate: ${_gate_out}"
+  fi
+fi
 
 # Locate devmemory CLI
 find_devmemory() {
