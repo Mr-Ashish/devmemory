@@ -254,3 +254,23 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 ### Decision
 
 **No build.** Third consecutive no-P0/P1 fire with eval ≥4.5 and clean push → **scheduler DONE**.
+
+## 2026-07-31 · fire · post-DONE confirm (no P0/P1) · scheduler stop
+
+**Persona jobs:** session→discover→extract→apply→reuse — fully covered by R1–R8 + tool-edit gate.
+
+### ROI rank (this fire)
+
+| Rank | Idea | Priority |
+|------|------|----------|
+| — | *(none)* | **no P0/P1** |
+| 1 | Canonicalize USAGE H2 `Claude Code hook (SessionEnd)` | P2 (validate warn only) |
+| 2 | Auto-install hook on `devmemory init` | P2 |
+| 3 | Semantic embedding dedupe | P2 |
+| 4 | Pure OpenRouter path without Hermes | P2 |
+| 5 | GEPA / cloud hub / PR-bot | deferred / out of scope |
+
+### Decision
+
+**No build.** Reconfirmed after `git pull` + product pass: pytest 92, `doctor --strict` ready_live=yes, `validate` ok (1 P2 warn). Last live dogfood eval **5.0/5** (`dogfood-run-20260731T035248-64c461`, units=0 anti-restate). Three prior consecutive no-P0/P1 fires already met stop criteria → **scheduler_delete**.
+

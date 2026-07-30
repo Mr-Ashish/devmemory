@@ -164,3 +164,11 @@ change code
 - Live Opus: hermes_rc=0, **units=0**, **0** writes · showcase `dogfood-run-20260731T035248-64c461` · eval **5.0/5**
 - pytest 92 green; validate ok; ready_live=yes
 - **DONE:** R1–R8 habit loop solid; scheduler task ended (only P2+ backlog remains)
+
+## 2026-07-31 · post-DONE confirm · scheduler stop
+
+- Fourth pass still **no P0/P1** (P2 only: USAGE H2, init-hook, embeddings, GEPA)
+- No code change; no new live extract (prior eval 5.0/5 holds)
+- pytest 92 · doctor ready_live · validate ok · secrets clean
+- **DONE confirmed** — recursive dogfood scheduler ended
+
