@@ -6,6 +6,7 @@ import os
 import subprocess
 from pathlib import Path
 
+from devmemory.apply import claim_fingerprint
 from devmemory.paths import is_knowledge_blocked, list_repo_dirs
 from devmemory.redaction import redact
 from devmemory.sources.base import SessionRecord
@@ -15,6 +16,7 @@ MAX_SESSION_CHARS = int(os.environ.get("DEVMEMORY_MAX_SESSION_CHARS", "24000"))
 MAX_DIFF_CHARS = int(os.environ.get("DEVMEMORY_MAX_DIFF_CHARS", "40000"))
 MAX_TREE_LINES = int(os.environ.get("DEVMEMORY_MAX_TREE_LINES", "200"))
 MAX_KNOWLEDGE_FILE_CHARS = int(os.environ.get("DEVMEMORY_MAX_KNOWLEDGE_CHARS", "1600"))
+MAX_CLAIM_INDEX_CHARS = int(os.environ.get("DEVMEMORY_MAX_CLAIM_INDEX_CHARS", "2400"))
 
 
 def _run(cmd: list[str], cwd: Path) -> str:
@@ -61,8 +63,9 @@ def collect_repo_context(repo_root: Path) -> dict[str, str]:
         if len(tree_lines) >= MAX_TREE_LINES:
             break
 
-    # existing knowledge — compact to cut restate thrash in the LLM
+    # existing knowledge — compact bullets + claim index (R6 anti-restate)
     knowledge: list[str] = []
+    claim_lines: list[str] = []
     for name in ("DEV.md", "USAGE.md"):
         for p in repo_root.rglob(name):
             if any(part.startswith(".") for part in p.parts):
@@ -82,6 +85,7 @@ def collect_repo_context(repo_root: Path) -> dict[str, str]:
             except OSError:
                 continue
             knowledge.append(f"### {rel}\n\n{_compact_knowledge(body)}\n")
+            claim_lines.extend(_claim_index_lines(str(rel), body))
 
     if len(diff) > MAX_DIFF_CHARS:
         diff = diff[:MAX_DIFF_CHARS] + "\n\n… [diff truncated] …\n"
@@ -89,18 +93,54 @@ def collect_repo_context(repo_root: Path) -> dict[str, str]:
     dirs = [d for d in list_repo_dirs(repo_root) if d == "." or not is_knowledge_blocked(d)]
     dir_list = dirs[:80]
 
+    claim_index = _format_claim_index(claim_lines)
+    knowledge_block = "\n".join(knowledge) if knowledge else "(no DEV.md/USAGE.md yet)"
+    if claim_index:
+        knowledge_block = (
+            "### claim index (do not restate these claims)\n"
+            f"{claim_index}\n\n"
+            "### knowledge excerpts\n"
+            f"{knowledge_block}"
+        )
+
     return {
         "status": status.strip() or "(clean)",
         "diff": diff.strip() or "(no unstaged/uncommitted diff)",
         "log": log.strip() or "(no commits)",
         "tree": "\n".join(tree_lines) if tree_lines else "(empty)",
-        "knowledge": "\n".join(knowledge) if knowledge else "(no DEV.md/USAGE.md yet)",
+        "knowledge": knowledge_block,
         "dirs": "\n".join(dir_list),
     }
 
 
+def _claim_index_lines(rel: str, body: str) -> list[str]:
+    """One fingerprint line per bullet: path#section · tokens."""
+    import re
+
+    lines: list[str] = []
+    for m in re.finditer(r"(^##\s+([^\n]+))\n([\s\S]*?)(?=^##\s+|\Z)", body, re.M):
+        section = m.group(2).strip()
+        for ln in m.group(3).splitlines():
+            if not ln.strip().startswith(("-", "*")):
+                continue
+            fp = claim_fingerprint(ln)
+            if not fp:
+                continue
+            lines.append(f"- [{rel}#{section}] {fp}")
+    return lines
+
+
+def _format_claim_index(lines: list[str]) -> str:
+    if not lines:
+        return ""
+    text = "\n".join(lines)
+    if len(text) > MAX_CLAIM_INDEX_CHARS:
+        text = text[:MAX_CLAIM_INDEX_CHARS] + "\n… [claim index truncated; do not restate] …"
+    return text
+
+
 def _compact_knowledge(body: str) -> str:
-    """Keep H2 titles + up to 5 bullets per section (token thrift, anti-restate)."""
+    """Keep H2 titles + up to 4 bullets per section (token thrift, anti-restate)."""
     import re
 
     parts: list[str] = []
@@ -110,7 +150,7 @@ def _compact_knowledge(body: str) -> str:
             ln.strip()
             for ln in m.group(2).splitlines()
             if ln.strip().startswith(("-", "*"))
-        ][:5]
+        ][:4]
         if not bullets:
             continue
         parts.append(title + "\n" + "\n".join(bullets))

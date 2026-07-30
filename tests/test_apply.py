@@ -212,3 +212,102 @@ def test_apply_skips_low_confidence(tmp_path: Path):
         ]
     )
     assert apply_result(tmp_path, result) == []
+
+
+def test_apply_skips_technical_restate_pydantic(tmp_path: Path):
+    """R6: long technical paraphrases (frozen pydantic) must not thrash docs."""
+    apply_result(
+        tmp_path,
+        ExtractionResult(
+            units=[
+                KnowledgeUnit(
+                    kind="dev",
+                    path=".",
+                    section="Patterns",
+                    content=(
+                        "- Schemas are frozen pydantic models "
+                        "(`KnowledgeUnit` / `ExtractionResult`) in `schema.py`, "
+                        "so malformed LLM output fails at parse time rather than "
+                        "leaking into the apply layer."
+                    ),
+                    confidence="high",
+                )
+            ]
+        ),
+    )
+    changes = apply_result(
+        tmp_path,
+        ExtractionResult(
+            units=[
+                KnowledgeUnit(
+                    kind="dev",
+                    path=".",
+                    section="Patterns",
+                    content=(
+                        "- Extraction contracts are frozen pydantic models "
+                        "(`KnowledgeUnit` / `ExtractionResult` in `schema.py`); "
+                        "normalize validates the model's JSON against them instead "
+                        "of hand-rolling dict checks."
+                    ),
+                    confidence="high",
+                )
+            ]
+        ),
+    )
+    assert changes == []
+    text = (tmp_path / "DEV.md").read_text()
+    assert text.count("frozen pydantic") == 1
+
+
+def test_apply_skips_restate_across_sections(tmp_path: Path):
+    """R6: whole-file claim index blocks restates under a different H2."""
+    apply_result(
+        tmp_path,
+        ExtractionResult(
+            units=[
+                KnowledgeUnit(
+                    kind="dev",
+                    path=".",
+                    section="Patterns",
+                    content="- Only mark sessions processed when units > 0",
+                    confidence="high",
+                )
+            ]
+        ),
+    )
+    changes = apply_result(
+        tmp_path,
+        ExtractionResult(
+            units=[
+                KnowledgeUnit(
+                    kind="dev",
+                    path=".",
+                    section="Design decisions",
+                    content=(
+                        "- A session is only recorded as processed when the run "
+                        "produced units > 0 so empty runs never poison the cursor"
+                    ),
+                    confidence="high",
+                )
+            ]
+        ),
+    )
+    assert changes == []
+
+
+def test_scrub_file_near_dupes_cross_section():
+    from devmemory.apply import scrub_file_near_dupes
+
+    messy = (
+        "# DEV\n\n"
+        "## Patterns\n\n"
+        "- Schemas are frozen pydantic models (`KnowledgeUnit` / `ExtractionResult`) "
+        "in `schema.py` so malformed output fails at parse time.\n\n"
+        "## Pitfalls\n\n"
+        "- Extraction contracts are frozen pydantic models "
+        "(`KnowledgeUnit` / `ExtractionResult` in `schema.py`); normalize validates "
+        "JSON against them instead of hand-rolling dict checks.\n"
+    )
+    cleaned = scrub_file_near_dupes(messy)
+    assert cleaned.count("frozen pydantic") == 1
+    assert "## Patterns" in cleaned

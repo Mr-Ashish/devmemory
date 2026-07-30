@@ -35,6 +35,8 @@ Respond with **only** the JSON object (fence optional).
 - `confidence`: `high` | `medium` | `low`
 - Prefer 1–6 units. When both design and commands appear, emit **both** kinds.
 - **No secrets**. Never copy tokens, keys, or `.env` values.
+- **Anti-restate (R6):** If the session only restates claims already listed in the
+  claim index / existing knowledge, return `"units": []`. Prefer empty over paraphrase.
 
 ## Session
 - **id:** `{{SESSION_ID}}`
@@ -72,8 +74,9 @@ Respond with **only** the JSON object (fence optional).
 {{GIT_DIFF}}
 ```
 
-### existing knowledge (do not repeat these bullets)
+### existing knowledge + claim index (do not repeat / paraphrase these claims)
 {{EXISTING_KNOWLEDGE}}
 
 ## Final instruction
-Return the JSON object now. If nothing durable is present, return `"units": []`.
+Return the JSON object now. If nothing **new** durable is present (including when
+the session only restates the claim index), return `"units": []`.

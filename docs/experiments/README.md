@@ -97,3 +97,28 @@ Running notes from dogfood experiments. Prefer short entries with command + outc
 1. **R6 anti-restate** — compact knowledge index so re-runs add nothing when stable (highest next after R1–R5).
 2. **R7 CI form-validator** — DEV.md/USAGE.md shape without transcripts.
 3. **Hook apply gate** — only suggest extract when session had tool edits.
+4. **R8 watch** — mtime poll on Claude history (defer until habit loop solid).
+5. **Semantic embedding dedupe** — only if R6 still leaks paraphrases (P2).
+
+## 2026-07-31 · fire · R6 anti-restate (claim index)
+
+**Persona jobs:** extract→apply→reuse. Stable knowledge must not thrash on every dogfood re-run.
+**Gap:** R5 eval Dedupe 3.5 — frozen-pydantic restates keep landing; Jaccard 0.52 misses long technical paraphrases; `scrub_file_near_dupes` was dead code; filter was section-local only; assemble sent bulky partial bullets not a claim index.
+
+### ROI rank (this fire)
+
+| Rank | Idea | Impact×adoption / effort |
+|------|------|--------------------------|
+| 1 | **R6 claim-index anti-restate** | High — stops doc thrash on every re-run; low effort |
+| 2 | R7 CI form-validator | Med — CI safety without transcripts |
+| 3 | Hook apply gate (tool-edit only) | Med — less noise after chat-only sessions |
+| 4 | R8 `watch` | Low until real Claude use here |
+| 5 | GEPA / self-evolution | Skip — core habit loop first |
+
+### Build plan (R6)
+
+1. Strengthen `_near_duplicate` with significant-token overlap + strip `/` in norm.
+2. Whole-file claim norms when filtering new bullets (cross-section).
+3. Wire `scrub_file_near_dupes` file-wide into apply path; compact **claim index** in assemble + prompt “return units:[] if only restates”.
+4. Tests: technical restate skip, cross-section skip, file-wide scrub.
+5. pytest → live Opus dogfood → eval → push.

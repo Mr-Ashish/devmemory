@@ -152,10 +152,30 @@ def _ensure_file(path: Path, kind: str) -> str:
     return body
 
 
+# Light stopwords so Jaccard / sig-token checks focus on claim content (R6).
+_STOP = frozenset(
+    {
+        "the", "and", "for", "with", "from", "that", "this", "when", "into", "than",
+        "rather", "instead", "them", "they", "are", "was", "were", "been", "being",
+        "have", "has", "had", "does", "did", "will", "would", "should", "could",
+        "must", "only", "also", "over", "under", "after", "before", "not", "nor",
+        "but", "its", "via", "per", "any", "all", "each", "both", "same", "such",
+        "so", "if", "or", "as", "at", "by", "on", "in", "to", "of", "a", "an",
+        "is", "it", "be", "do", "use", "used", "using", "make", "makes", "made",
+        "run", "runs", "file", "files", "code", "time", "just", "about", "more",
+        "then", "there", "their", "these", "those", "which", "what", "where",
+        "while", "who", "how", "can", "may", "might", "very", "too", "out", "up",
+        "down", "off", "our", "your", "you", "we", "no", "yes", "new", "old",
+        "one", "two", "way", "ways",
+    }
+)
+
+
 def _norm_bullet(line: str) -> str:
     s = line.strip().lstrip("-*").strip().lower()
     s = re.sub(r"\s+", " ", s)
-    s = re.sub(r"[`*_'\".,;:()\[\]{}]", "", s)
+    # include / so `KnowledgeUnit` / `ExtractionResult` collapses cleanly
+    s = re.sub(r"[`*_'\".,;:()\[\]{}/]", "", s)
     return s
 
 
@@ -169,11 +189,29 @@ def _stem(tok: str) -> str:
 
 
 def _token_set(norm: str) -> set[str]:
-    return {_stem(t) for t in norm.split() if len(t) > 2}
+    return {
+        _stem(t)
+        for t in norm.split()
+        if len(t) > 2 and t not in _STOP and _stem(t) not in _STOP
+    }
+
+
+def _sig_tokens(norm: str) -> set[str]:
+    """Distinctive claim tokens (length ≥5, or has digit) for R6 anti-restate."""
+    return {t for t in _token_set(norm) if len(t) >= 5 or any(c.isdigit() for c in t)}
+
+
+def claim_fingerprint(line: str, *, max_tokens: int = 8) -> str:
+    """Compact claim line for assemble knowledge index (R6)."""
+    n = _norm_bullet(line)
+    toks = sorted(_sig_tokens(n))[:max_tokens]
+    if not toks:
+        toks = sorted(_token_set(n))[:max_tokens]
+    return " ".join(toks)
 
 
 def _near_duplicate(a: str, b: str, *, threshold: float = 0.52) -> bool:
-    """True if two normalized bullets are the same claim (containment or Jaccard)."""
+    """True if two normalized bullets are the same claim (containment, Jaccard, or sig overlap)."""
     if not a or not b:
         return False
     if a == b:
@@ -190,7 +228,18 @@ def _near_duplicate(a: str, b: str, *, threshold: float = 0.52) -> bool:
     jacc = inter / union
     smaller = min(len(ta), len(tb))
     cover = inter / smaller if smaller else 0.0
-    return jacc >= threshold or cover >= 0.62
+    if jacc >= threshold or cover >= 0.62:
+        return True
+    # R6: long technical paraphrases share entity tokens but not full Jaccard
+    sa, sb = _sig_tokens(a), _sig_tokens(b)
+    if sa and sb:
+        inter_s = len(sa & sb)
+        if inter_s >= 4:
+            return True
+        smaller_s = min(len(sa), len(sb))
+        if smaller_s and inter_s >= 3 and inter_s / smaller_s >= 0.55:
+            return True
+    return False
 
 
 def _content_bullets(content: str) -> list[str]:
@@ -206,13 +255,35 @@ def _content_bullets(content: str) -> list[str]:
     return lines
 
 
-def _filter_new_bullets(existing_section_body: str, content: str) -> str:
-    """Return only bullets not already present (normalized / near-dupe)."""
+def _file_bullet_norms(text: str) -> list[str]:
+    """All bullet norms in a knowledge file (cross-section claim index)."""
+    return [
+        _norm_bullet(ln)
+        for ln in text.splitlines()
+        if ln.strip().startswith(("-", "*")) and not is_placeholder_line(ln.strip())
+    ]
+
+
+def _filter_new_bullets(
+    existing_section_body: str,
+    content: str,
+    *,
+    also_norms: list[str] | None = None,
+) -> str:
+    """Return only bullets not already present (normalized / near-dupe).
+
+    ``also_norms`` is typically the whole-file claim index so restates landing
+    under a different H2 are still skipped (R6).
+    """
     existing_norms = [
         _norm_bullet(ln)
         for ln in existing_section_body.splitlines()
         if ln.strip().startswith(("-", "*"))
     ]
+    if also_norms:
+        for e in also_norms:
+            if e and e not in existing_norms:
+                existing_norms.append(e)
     kept: list[str] = []
     for b in _content_bullets(content):
         n = _norm_bullet(b)
@@ -243,16 +314,28 @@ def dedupe_section_bullets(body: str) -> str:
 
 
 def scrub_file_near_dupes(text: str) -> str:
-    """Within each H2 section, keep first bullet when near-duplicates appear."""
-    pattern = re.compile(
-        r"(^##\s+[^\n]+\n)([\s\S]*?)(?=^##\s+|\Z)",
-        re.MULTILINE,
-    )
+    """File-wide first-wins near-dupe scrub (cross-section; R6).
 
-    def repl(m: re.Match) -> str:
-        return m.group(1) + dedupe_section_bullets(m.group(2))
-
-    return strip_placeholders(pattern.sub(repl, text))
+    Keeps headings and non-bullet lines; drops later bullets that restate an
+    earlier claim anywhere in the same DEV.md/USAGE.md.
+    """
+    norms: list[str] = []
+    out: list[str] = []
+    for ln in text.splitlines():
+        stripped = ln.strip()
+        if stripped.startswith(("-", "*")) and not is_placeholder_line(stripped):
+            n = _norm_bullet(ln)
+            if n and any(_near_duplicate(n, e) for e in norms):
+                continue
+            if n:
+                norms.append(n)
+            out.append(ln)
+        else:
+            out.append(ln)
+    body = "\n".join(out)
+    if text.endswith("\n") and not body.endswith("\n"):
+        body += "\n"
+    return strip_placeholders(body)
 
 
 def _section_exists(text: str, section: str) -> bool:
@@ -262,6 +345,8 @@ def _section_exists(text: str, section: str) -> bool:
 
 
 def _append_section(text: str, section: str | None, content: str) -> str:
+    # Whole-file claim index so a restate under a different H2 is still skipped (R6).
+    file_norms = _file_bullet_norms(text)
     if section:
         heading = section.strip().lstrip("#").strip()
         pattern = re.compile(
@@ -276,7 +361,9 @@ def _append_section(text: str, section: str | None, content: str) -> str:
                     ln for ln in body.splitlines() if not is_placeholder_line(ln)
                 )
             )
-            new_bullets = _filter_new_bullets(body_clean, content)
+            new_bullets = _filter_new_bullets(
+                body_clean, content, also_norms=file_norms
+            )
             if not new_bullets.strip():
                 cleaned = strip_placeholders(
                     text[: m.start()]
@@ -294,15 +381,15 @@ def _append_section(text: str, section: str | None, content: str) -> str:
             rebuilt = text[: m.start()] + m.group(1) + new_body + "\n" + text[m.end() :]
             return strip_placeholders(rebuilt)
 
-        # create section
-        new_bullets = _filter_new_bullets("", content)
+        # create section — still filter against whole-file claims
+        new_bullets = _filter_new_bullets("", content, also_norms=file_norms)
         if not new_bullets.strip():
             return strip_placeholders(text)
         return strip_placeholders(
             text.rstrip() + f"\n\n## {heading}\n\n{new_bullets}\n"
         )
 
-    new_bullets = _filter_new_bullets(text, content)
+    new_bullets = _filter_new_bullets(text, content, also_norms=file_norms)
     if not new_bullets.strip():
         return strip_placeholders(text)
     return strip_placeholders(text.rstrip() + "\n\n" + new_bullets + "\n")
@@ -373,23 +460,29 @@ def _compute_unit_text(
     else:
         existing = _read_or_template(path, unit.kind)
     if unit.action == "replace_section" and unit.section:
-        new_text = _replace_section(existing, unit.section, unit.content)
+        merged = _replace_section(existing, unit.section, unit.content)
         action = unit.action
     else:
-        new_text = _append_section(existing, unit.section, unit.content)
+        merged = _append_section(existing, unit.section, unit.content)
         action = unit.action
 
-    new_text = strip_placeholders(new_text)
+    merged = strip_placeholders(merged)
+    # R6: file-wide near-dupe scrub (historical thrash + cross-section restates)
+    new_text = scrub_file_near_dupes(merged)
+    existing_clean = strip_placeholders(existing)
+
     # existing_override means we already have a simulated body (possibly template).
     has_prior = path.exists() or existing_override is not None
-    if new_text == strip_placeholders(existing) and has_prior:
+    if new_text == existing_clean and has_prior:
         if new_text == existing:
             return None
-        # placeholders cleaned only
         return unit, path, existing, new_text, "scrub"
 
     if new_text == existing:
         return None
+    # Merge was a no-op but scrub removed thrash → label scrub
+    if merged == existing_clean and new_text != existing:
+        return unit, path, existing, new_text, "scrub"
     return unit, path, existing, new_text, action
 
 
